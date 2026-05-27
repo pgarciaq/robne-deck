@@ -1,0 +1,14 @@
+{
+  "name": "robne-deck",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Marp presentation: ROS-OCP Native Engine",
+  "scripts": {
+    "serve": "marp-cli -s slides.md",
+    "build:html": "marp-cli slides.md -o dist/slides.html",
+    "build:pdf": "marp-cli slides.md -o dist/slides.pdf --allow-local-files"
+  },
+  "devDependencies": {
+    "@marp-team/marp-cli": "^4.1.2"
+  }
+}
