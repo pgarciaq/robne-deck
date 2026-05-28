@@ -265,7 +265,7 @@ Not a faster Kruize wrapper — a **full recommendation engine**
 
 | Phase | Focus | Examples |
 |-------|-------|----------|
-| **Produce** | Core right-sizing | container, GPU, node, PVC, namespace |
+| **Produce** | Core right-sizing | container, GPU, node, PVC, quota, namespace |
 | **Enrich** | Context & policy | business hours, tags, staleness |
 | **Optimize** | FinOps value | cost model integration, savings |
 
@@ -277,32 +277,25 @@ Integer arithmetic · keyset pagination · pre-computed stats · batch ops · st
 
 ---
 
-## Quota Recommendations
+## Quota Recommendations — Shipped
 
-Compares **ResourceQuota** hard limits against:
+**ResourceQuota** right-sizing (`quota` plugin, priority 35)
 
-- **Actual usage** from cluster metrics
-- **Container recommendation sums** (right-sized request/limit targets)
-
-**Recommendation types**
-
-| Type | Signal |
-|------|--------|
-| **Tighten** | Over-provisioned — quota well above usage + recommended footprint |
-| **Raise** | At risk — usage or recommendations approaching the hard limit |
-| **Optimal** | Quota aligned with workload needs |
-
-**Pairs with idle detection** — double-waste signal when quota headroom exists *and* workloads are idle
-
-**Savings** — capacity freed (cores, GiB) **and** dollar estimates via cost model integration
+- Compares quota **hard** / **used** vs **container rec sums**
+- Types: **tighten** · **raise** · **optimal** — risk: high / medium / low
+- API: `GET .../recommendations/openshift/quota/`
+- Pairs with **idle detection** (double-waste signal)
+- **Savings** on tighten — capacity freed + cost model dollars
+- **ClusterResourceQuota** — planned (namespace ResourceQuota today)
 
 ---
 
 ## Roadmap
 
-**Recently shipped**
+**Delivered**
 
-- **Namespace** & **cluster quota** recommendations
+- **ResourceQuota** recommendations (`quota` plugin)
+- Namespace usage-based sizing, idle detection, fleet savings
 
 **Near term**
 
@@ -322,7 +315,8 @@ Compares **ResourceQuota** hard limits against:
 Today              Next                 Future
 ──────             ────                 ──────
 Container/GPU  →   VM / JVM         →   VPA / HPA
-Node/PVC/Quota →   Quarkus          →   Bin-packing
+Node/PVC     →   Quarkus          →   Bin-packing
+Quota ✓      →   ClusterResourceQuota
 Savings        →   History          →   Quality scores
 ```
 
