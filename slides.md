@@ -191,6 +191,7 @@ Cluster metrics
 | Snapshot staleness | ❌ | ✅ |
 | Business hours | ❌ | ✅ |
 | Idle/zombie detection | ❌ | ✅ |
+| Namespace/Cluster quota | ❌ | ✅ |
 | Tag filtering & grouping | ❌ | ✅ |
 | Dollar-value savings | ❌ | ✅ |
 | Configurable thresholds | Limited | ✅ (3-tier) |
@@ -276,11 +277,35 @@ Integer arithmetic · keyset pagination · pre-computed stats · batch ops · st
 
 ---
 
+## Quota Recommendations
+
+Compares **ResourceQuota** hard limits against:
+
+- **Actual usage** from cluster metrics
+- **Container recommendation sums** (right-sized request/limit targets)
+
+**Recommendation types**
+
+| Type | Signal |
+|------|--------|
+| **Tighten** | Over-provisioned — quota well above usage + recommended footprint |
+| **Raise** | At risk — usage or recommendations approaching the hard limit |
+| **Optimal** | Quota aligned with workload needs |
+
+**Pairs with idle detection** — double-waste signal when quota headroom exists *and* workloads are idle
+
+**Savings** — capacity freed (cores, GiB) **and** dollar estimates via cost model integration
+
+---
+
 ## Roadmap
+
+**Recently shipped**
+
+- **Namespace** & **cluster quota** recommendations
 
 **Near term**
 
-- **Namespace** & **cluster quota** recommendations
 - **OpenShift Virtualization (VM)** recommendations
 - **Java/JVM** & **Quarkus** workload tuning
 
@@ -296,8 +321,8 @@ Integer arithmetic · keyset pagination · pre-computed stats · batch ops · st
 ```
 Today              Next                 Future
 ──────             ────                 ──────
-Container/GPU  →   Quota / VM       →   VPA / HPA
-Node/PVC       →   JVM / Quarkus    →   Bin-packing
+Container/GPU  →   VM / JVM         →   VPA / HPA
+Node/PVC/Quota →   Quarkus          →   Bin-packing
 Savings        →   History          →   Quality scores
 ```
 
