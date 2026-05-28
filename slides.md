@@ -184,7 +184,7 @@ Cluster metrics
 |---------|:------:|:-------------:|
 | Container CPU/Memory | ✅ | ✅ |
 | Namespace recommendations | ✅ (upstream) | ✅ |
-| GPU MIG slicing | ❌ | ✅ |
+| GPU MIG slicing | ✅ | ✅ |
 | GPU time-slicing | ❌ | ✅ |
 | Node right-sizing | ❌ | ✅ |
 | PVC right-sizing | ❌ | ✅ |
@@ -205,7 +205,7 @@ Cluster metrics
 
 **10× more product features** — purpose-built for OpenShift Cost Management
 
-- **GPU:** MIG and time-slicing recommendations
+- **GPU:** time-slicing recommendations (MIG in both engines; Native productizes full GPU FinOps)
 - **Infrastructure:** node and PVC right-sizing
 - **FinOps:** cost model integration, dollar savings
 - **Operations:** snapshot staleness, idle workload detection
