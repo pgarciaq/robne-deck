@@ -5,7 +5,7 @@ paginate: true
 backgroundColor: #fff
 style: |
   section.lead h1 { font-size: 2.5em; }
-  table { font-size: 0.7em; }
+  table { font-size: 0.65em; }
   section { font-size: 1.1em; }
 ---
 
@@ -178,26 +178,36 @@ Cluster metrics
 
 ---
 
-## Native Engine: Feature Comparison
+## Feature Comparison: Recommendations
 
 | Feature | Kruize | Native Engine |
 |---------|:------:|:-------------:|
 | Container CPU/Memory | ✅ | ✅ |
-| Namespace recommendations | ✅ (upstream) | ✅ |
-| GPU MIG slicing | ✅ | ✅ |
+| Namespace recommendations | ✅ (upstream only) | ✅ |
+| GPU MIG slicing | ✅ (upstream only) | ✅ |
 | GPU time-slicing | ❌ | ✅ |
+| Java recommendations | ✅ (upstream only) | ❌ (planned) |
 | Node right-sizing | ❌ | ✅ |
 | PVC right-sizing | ❌ | ✅ |
-| Snapshot staleness | ❌ | ✅ |
-| Business hours | ❌ | ✅ |
-| Idle/zombie detection | ❌ | ✅ |
 | Namespace/Cluster quota | ❌ | ✅ |
+| OOM detection | ❌ | ✅ |
+| Data decay | ❌ | ✅ |
+| Idle/zombie detection | ❌ | ✅ |
+
+---
+
+## Feature Comparison: Platform & FinOps
+
+| Feature | Kruize | Native Engine |
+|---------|:------:|:-------------:|
+| Business hours | ❌ | ✅ |
+| Snapshot staleness | ❌ | ✅ |
 | Tag filtering & grouping | ❌ | ✅ |
 | Dollar-value savings | ❌ | ✅ |
-| Configurable thresholds | Limited | ✅ (3-tier) |
-| Multi-term recommendations | ❌ | ✅ |
-| Keyset pagination | ❌ | ✅ |
 | Cost model integration | ❌ | ✅ |
+| Multi-term recommendations | ❌ | ✅ |
+| Configurable thresholds | Limited | ✅ (3-tier) |
+| Keyset pagination | ❌ | ✅ |
 
 ---
 
@@ -206,10 +216,11 @@ Cluster metrics
 **10× more product features** — purpose-built for OpenShift Cost Management
 
 - **GPU:** time-slicing recommendations (MIG in both engines; Native productizes full GPU FinOps)
-- **Infrastructure:** node and PVC right-sizing
-- **FinOps:** cost model integration, dollar savings
-- **Operations:** snapshot staleness, idle workload detection
-- **Flexibility:** three-tier thresholds (environment → API → defaults)
+- **Infrastructure:** node right-sizing, PVC right-sizing, namespace/cluster quota
+- **Reliability:** OOM detection, data decay (stale metrics age out)
+- **FinOps:** cost model integration, dollar savings, idle/zombie detection
+- **Operations:** snapshot staleness, business hours awareness
+- **Flexibility:** all thresholds configurable (3-tier: env vars → API → defaults)
 
 Not a faster Kruize wrapper — a **full recommendation engine**
 
@@ -265,7 +276,7 @@ Not a faster Kruize wrapper — a **full recommendation engine**
 
 | Phase | Focus | Examples |
 |-------|-------|----------|
-| **Produce** | Core right-sizing | container, GPU, node, PVC, quota, namespace |
+| **Produce** | Core right-sizing | container, GPU, node, PVC, quota, cluster-quota, namespace |
 | **Enrich** | Context & policy | business hours, tags, staleness |
 | **Optimize** | FinOps value | cost model integration, savings |
 
@@ -277,24 +288,12 @@ Integer arithmetic · keyset pagination · pre-computed stats · batch ops · st
 
 ---
 
-## Quota Recommendations — Shipped
-
-**ResourceQuota** right-sizing (`quota` plugin, priority 35)
-
-- Compares quota **hard** / **used** vs **container rec sums**
-- Types: **tighten** · **raise** · **optimal** — risk: high / medium / low
-- API: `GET .../recommendations/openshift/quota/`
-- Pairs with **idle detection** (double-waste signal)
-- **Savings** on tighten — capacity freed + cost model dollars
-- **ClusterResourceQuota** — planned (namespace ResourceQuota today)
-
----
-
 ## Roadmap
 
 **Delivered**
 
-- **ResourceQuota** recommendations (`quota` plugin)
+- **ResourceQuota** recommendations (`quota` plugin, priority 35)
+- **ClusterResourceQuota** recommendations (`cluster-quota` plugin, priority 36)
 - Namespace usage-based sizing, idle detection, fleet savings
 
 **Near term**
@@ -316,7 +315,7 @@ Today              Next                 Future
 ──────             ────                 ──────
 Container/GPU  →   VM / JVM         →   VPA / HPA
 Node/PVC     →   Quarkus          →   Bin-packing
-Quota ✓      →   ClusterResourceQuota
+Quota + CRQ ✓
 Savings        →   History          →   Quality scores
 ```
 
