@@ -59,7 +59,7 @@ Replacing Kruize with a purpose-built Go recommendation engine
 | Component | Role |
 |-----------|------|
 | Koku | Cost ingestion, aggregation, billing views |
-| ros-ocp-backend | CPU/memory/GPU/PVC recommendations |
+| ros-ocp-backend | CPU/memory/GPU/PVC/VM/node/quota recommendations |
 | koku-ui | Unified FinOps experience |
 
 ---
@@ -193,6 +193,11 @@ Cluster metrics
 | OOM detection | ❌ | ✅ |
 | Data decay | ❌ | ✅ |
 | Idle/zombie detection | ❌ | ✅ |
+| OpenShift Virtualization (VM) | ❌ | ✅ |
+| VM GPU passthrough/vGPU | ❌ | ✅ |
+| VM instance type matching | ❌ | ✅ |
+| VM idle/abandoned detection | ❌ | ✅ |
+| VM crash loop detection | ❌ | ✅ |
 
 ---
 
@@ -208,13 +213,18 @@ Cluster metrics
 | Multi-term recommendations | ❌ | ✅ |
 | Configurable thresholds | Limited | ✅ (3-tier) |
 | Keyset pagination | ❌ | ✅ |
+| Notification codes (54+) | Limited | ✅ |
+| Historical recommendations | ❌ | ✅ |
+| Global settings lock | ❌ | ✅ |
+| Adaptive margins (CPU) | ❌ | ✅ |
 
 ---
 
 ## Native Engine: More Than a Port
 
-**10× more product features** — purpose-built for OpenShift Cost Management
+**15× more product features** — purpose-built for OpenShift Cost Management
 
+- **OpenShift Virtualization:** VM CPU/memory/disk/I/O sizing, idle/abandoned detection, GPU passthrough/vGPU, instance type catalog, crash loop detection, graduated confidence
 - **GPU:** time-slicing recommendations (MIG in both engines; Native productizes full GPU FinOps)
 - **Infrastructure:** node right-sizing, PVC right-sizing, namespace/cluster quota
 - **Reliability:** OOM detection, data decay (stale metrics age out)
@@ -223,6 +233,26 @@ Cluster metrics
 - **Flexibility:** all thresholds configurable (3-tier: env vars → API → defaults)
 
 Not a faster Kruize wrapper — a **full recommendation engine**
+
+---
+
+## OpenShift Virtualization Recommendations
+
+**Full VM lifecycle optimization** — CPU, memory, disk, I/O, GPU
+
+| Capability | Details |
+|------------|---------|
+| CPU/Memory sizing | Guest-agent adaptive; Windows kernel reserve; P99 spike detection |
+| Disk projection | Linear regression; configurable projection window |
+| I/O profiling | Sequential vs random; throughput classification |
+| GPU | Passthrough/vGPU; MIG profile optimization; time-slicing |
+| Instance types | Static + per-cluster catalog; `gn1` GPU types |
+| Idle/Abandoned | OS-aware thresholds (Linux vs Windows) |
+| Crash loop | `kubevirt_vmi_phase_transition_time_seconds` |
+| Confidence | Graduated: high / moderate / low |
+| Downsize stability | Time-aware hysteresis (N consecutive days) |
+
+**14+ Prometheus queries** · dual CSV (15-min ROS + hourly Koku)
 
 ---
 
@@ -276,9 +306,9 @@ Not a faster Kruize wrapper — a **full recommendation engine**
 
 | Phase | Focus | Examples |
 |-------|-------|----------|
-| **Produce** | Core right-sizing | container, GPU, node, PVC, quota, cluster-quota, namespace |
-| **Enrich** | Context & policy | business hours, tags, staleness |
-| **Optimize** | FinOps value | cost model integration, savings |
+| **Produce** | Core right-sizing | container, GPU, node, PVC, quota, cluster-quota, namespace, **vm** |
+| **Enrich** | Context & policy | business hours, tags, staleness, **idle detection** |
+| **Optimize** | FinOps value | cost model integration, savings, **history tracking** |
 
 **Key optimizations:**
 
@@ -292,31 +322,51 @@ Integer arithmetic · keyset pagination · pre-computed stats · batch ops · st
 
 **Delivered**
 
-- **ResourceQuota** recommendations (`quota` plugin, priority 35)
-- **ClusterResourceQuota** recommendations (`cluster-quota` plugin, priority 36)
-- Namespace usage-based sizing, idle detection, fleet savings
+- Container CPU/memory (cost + performance dual engines)
+- Namespace aggregate sizing
+- Node consolidation/rightsizing
+- GPU recommendations (MIG, time-slicing, utilization)
+- PVC right-sizing
+- ResourceQuota and ClusterResourceQuota
+- Snapshot staleness detection
+- Idle/zombie workload detection
+- Business hours awareness
+- Tag-based filtering and grouping
+- Dollar-value savings estimates
+- Cost model integration
+- Historical recommendation tracking
+- **OpenShift Virtualization (VM) recommendations** — CPU, memory, disk, I/O, GPU passthrough/vGPU, instance type matching, idle/abandoned, crash loop detection, graduated confidence, adaptive margins
+- 54+ structured notification codes
+- 3-tier configurable thresholds (env → API → defaults)
+- Global settings lock
+- Keyset pagination
+- OOM detection and bump
 
 **Near term**
 
-- **OpenShift Virtualization (VM)** recommendations
-- **Java/JVM** & **Quarkus** workload tuning
+- Java/JVM & Quarkus workload tuning
+- Live migration cost awareness (VM)
+- Network-aware recommendations
 
 **Medium term**
 
-- **VPA** & **HPA** recommendation alignment
-- **Bin-packing** optimization across nodes
+- VPA & HPA recommendation alignment
+- Bin-packing optimization across nodes
+- Cross-cluster fleet optimization
 
 ---
 
 ## Roadmap: Strategic Direction
 
 ```
-Today              Next                 Future
-──────             ────                 ──────
-Container/GPU  →   VM / JVM         →   VPA / HPA
-Node/PVC     →   Quarkus          →   Bin-packing
-Quota + CRQ ✓
-Savings        →   History          →   Quality scores
+Delivered                    Next                    Future
+─────────                    ────                    ──────
+Container / GPU / Node       Java / JVM / Quarkus    VPA / HPA
+PVC / Quota / CRQ            Live migration (VM)     Bin-packing
+VM (full: GPU, idle, inst.)  Network-aware           Fleet optimization
+Savings / History / Tags
+Notifications (54+)
+Settings (3-tier + lock)
 ```
 
 One engine · one database · one language — **continuous delivery** without Kruize release cycles
@@ -335,7 +385,7 @@ One engine · one database · one language — **continuous delivery** without K
 
 | Dimension | Improvement |
 |-----------|-------------|
-| Features | **10×** more capability vs. shipped Kruize |
+| Features | **15×** more capability vs. shipped Kruize |
 | Resources | **50×** less RAM (~128 MB vs. 4 GB) |
 | Speed | **100×** faster on hot paths |
 | Architecture | **Single binary, single DB, single language** |
