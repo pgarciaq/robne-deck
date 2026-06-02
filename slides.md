@@ -182,14 +182,16 @@ Cluster metrics
 
 | Feature | Kruize | Native Engine |
 |---------|:------:|:-------------:|
-| Container CPU/Memory | ✅ | ✅ |
-| Namespace recommendations | ✅ (upstream only) | ✅ |
-| GPU MIG slicing | ✅ (upstream only) | ✅ |
-| GPU time-slicing | ❌ | ✅ |
+| Container CPU/Memory | ✅ | ✅ (production-ready) |
+| Namespace recommendations | ✅ (upstream only) | ✅ (history, BH, boxplots, notifications) |
+| GPU MIG slicing | ✅ (upstream only) | ✅ (cost + ROS E2E, IQE validated) |
+| GPU time-slicing | ❌ | ✅ (cluster filter, Helm defaults) |
 | Java recommendations | ✅ (upstream only) | ❌ (planned) |
-| Node right-sizing | ❌ | ✅ |
-| PVC right-sizing | ❌ | ✅ |
-| Namespace/Cluster quota | ❌ | ✅ |
+| Node right-sizing | ❌ | ✅ (instance type, idle/consolidation, allocatable) |
+| PVC right-sizing | ❌ | ✅ (detail, filters, order_by, mounted_by) |
+| ResourceQuota | ❌ | ✅ (detail, history, notifications 70–72) |
+| ClusterResourceQuota | ❌ | ✅ (namespace filter, savings, alias filters) |
+| VolumeSnapshot staleness | ❌ | ✅ |
 | OOM detection | ❌ | ✅ |
 | Data decay | ❌ | ✅ |
 | Idle/zombie detection | ❌ | ✅ |
@@ -213,7 +215,7 @@ Cluster metrics
 | Multi-term recommendations | ❌ | ✅ |
 | Configurable thresholds | Limited | ✅ (3-tier) |
 | Keyset pagination | ❌ | ✅ |
-| Notification codes (54+) | Limited | ✅ |
+| Notification codes (75) | Limited | ✅ |
 | Historical recommendations | ❌ | ✅ |
 | Global settings lock | ❌ | ✅ |
 | Adaptive margins (CPU) | ❌ | ✅ |
@@ -225,8 +227,9 @@ Cluster metrics
 **15× more product features** — purpose-built for OpenShift Cost Management
 
 - **OpenShift Virtualization:** VM CPU/memory/disk/I/O sizing, idle/abandoned detection, GPU passthrough/vGPU, instance type catalog, crash loop detection, graduated confidence
-- **GPU:** time-slicing recommendations (MIG in both engines; Native productizes full GPU FinOps)
-- **Infrastructure:** node right-sizing, PVC right-sizing, namespace/cluster quota
+- **GPU:** MIG and time-slicing — full cost + ROS paths, IQE unblocked (COST-7179)
+- **Infrastructure:** node (instance types, idle/consolidation), PVC (pod context), ResourceQuota, ClusterResourceQuota
+- **Namespace:** aggregate sizing, history, business hours, boxplots, structured notifications
 - **Reliability:** OOM detection, data decay (stale metrics age out)
 - **FinOps:** cost model integration, dollar savings, idle/zombie detection
 - **Operations:** snapshot staleness, business hours awareness
@@ -304,11 +307,13 @@ Not a faster Kruize wrapper — a **full recommendation engine**
 
 ## Plugin Architecture
 
-| Phase | Focus | Examples |
-|-------|-------|----------|
-| **Produce** | Core right-sizing | container, GPU, node, PVC, quota, cluster-quota, namespace, **vm** |
-| **Enrich** | Context & policy | business hours, tags, staleness, **idle detection** |
-| **Optimize** | FinOps value | cost model integration, savings, **history tracking** |
+| Phase | Focus | Plugins / capabilities |
+|-------|-------|------------------------|
+| **Produce** | Core right-sizing | **container**, **namespace**, **gpu** (MIG + time-slicing), **node**, **pvc**, **quota**, **cluster-quota**, **snapshot**, **vm** |
+| **Enrich** | Context & policy | business hours, tags, snapshot staleness, idle/zombie/abandoned, OOM, GPU enrich on container APIs |
+| **Optimize** | FinOps value | cost model integration, dollar savings, fleet summary, **history** (container, namespace, quota, CRQ) |
+
+**Phase 2/3 (planned):** java, golang, hpa, vpa · binpacking, machineset (fleet)
 
 **Key optimizations:**
 
@@ -318,40 +323,46 @@ Integer arithmetic · keyset pagination · pre-computed stats · batch ops · st
 
 ---
 
+## Test & Validation
+
+**Automated coverage across the full recommendation surface**
+
+| Layer | Scope |
+|-------|-------|
+| **cost-onprem-chart E2E** | Namespace BH, node idle/consolidation, GPU MIG (cost + ROS), GPU time-slicing, VM GPU, PVC, ClusterResourceQuota |
+| **IQE cost-management** | Container, namespace, node, CRQ, GPU/MIG (COST-7179 unblocked) |
+| **IQE ros-ocp** | GPU/MIG on native paths; namespace tests migrated off Kruize |
+| **OpenAPI contract tests** | All recommendation routes — request/response shape parity |
+| **Bruno collections** | Manual QA across Optimizations endpoints (detail, filters, history, savings) |
+
+**Documentation:** docs-site feature pages per type · architecture (GPU, node tiers, seasonality design)
+
+---
+
 ## Roadmap
 
-**Delivered**
+**Delivered (backend complete — phase 12)**
 
-- Container CPU/memory (cost + performance dual engines)
-- Namespace aggregate sizing
-- Node consolidation/rightsizing
-- GPU recommendations (MIG, time-slicing, utilization)
-- PVC right-sizing
-- ResourceQuota and ClusterResourceQuota
-- Snapshot staleness detection
-- Idle/zombie workload detection
-- Business hours awareness
-- Tag-based filtering and grouping
-- Dollar-value savings estimates
-- Cost model integration
-- Historical recommendation tracking
-- **OpenShift Virtualization (VM) recommendations** — CPU, memory, disk, I/O, GPU passthrough/vGPU, instance type matching, idle/abandoned, crash loop detection, graduated confidence, adaptive margins
-- 54+ structured notification codes
-- 3-tier configurable thresholds (env → API → defaults)
-- Global settings lock
-- Keyset pagination
-- OOM detection and bump
+- **All recommendation types:** container, namespace, node, GPU (MIG + time-slicing), PVC, ResourceQuota, ClusterResourceQuota, snapshot, VM (CPU/memory/disk/I/O/GPU)
+- **API depth:** history endpoints (namespace, quota, CRQ, container); namespace boxplots; PVC detail + `mounted_by`; quota/CRQ detail, filters, order_by; node instance-type awareness
+- **FinOps & ops:** cost model integration, dollar savings, business hours, tags, idle/zombie/abandoned, snapshot staleness, adaptive margins (CPU), 3-tier thresholds, global settings lock, keyset pagination
+- **Notifications:** 75 structured codes (quota 70–73, node pod scheduling, VM/GPU/PVC/snapshot families)
+- **Test & docs:** cost-onprem-chart E2E (all types above); IQE plugins (GPU unblocked); OpenAPI contract tests; Bruno collections; docs-site feature pages
 
 **Near term**
 
-- Java/JVM & Quarkus workload tuning
-- Live migration cost awareness (VM)
-- Network-aware recommendations
+- Seasonality / proactive recommendations (design documented)
+- Node Tier 2 — MachineSet right-sizing
+- **UI integration** — namespace, GPU, quota, PVC, VM views (backend-only today)
 
 **Medium term**
 
-- VPA & HPA recommendation alignment
-- Bin-packing optimization across nodes
+- Node Tier 3 — MachineAutoscaler recommendations
+- Java/JVM & Quarkus workload tuning
+- Live migration cost awareness (VM)
+- Multi-GPU container consolidation (bin-packing)
+- Network-aware recommendations
+- VPA & HPA alignment
 - Cross-cluster fleet optimization
 
 ---
@@ -359,14 +370,13 @@ Integer arithmetic · keyset pagination · pre-computed stats · batch ops · st
 ## Roadmap: Strategic Direction
 
 ```
-Delivered                    Next                    Future
-─────────                    ────                    ──────
-Container / GPU / Node       Java / JVM / Quarkus    VPA / HPA
-PVC / Quota / CRQ            Live migration (VM)     Bin-packing
-VM (full: GPU, idle, inst.)  Network-aware           Fleet optimization
-Savings / History / Tags
-Notifications (54+)
-Settings (3-tier + lock)
+Delivered (phase 12)         Near term               Medium term
+──────────────────           ─────────               ───────────
+All rec types + APIs         Seasonality design      Node Tier 3 (MA)
+E2E + IQE + OpenAPI + Bruno  MachineSet (Tier 2)     Java / JVM / Quarkus
+History / savings / tags     UI (NS/GPU/quota/PVC/VM) Multi-GPU bin-pack
+Notifications (75)           (backend complete)      Live migration (VM)
+Settings (3-tier + lock)                             Network / VPA / HPA / fleet
 ```
 
 One engine · one database · one language — **continuous delivery** without Kruize release cycles
