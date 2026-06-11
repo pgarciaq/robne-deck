@@ -339,15 +339,67 @@ Integer arithmetic · keyset pagination · pre-computed stats · batch ops · st
 
 ---
 
+<!-- _class: lead -->
+
+# Production Hardening
+
+## Phase 12 continued — adversarial reviews, security, ops, governance
+
+---
+
+## Security Hardening
+
+| Control | Implementation |
+|---------|----------------|
+| **SSRF protection** | Fail-closed DNS resolution; IPv6 private network blocking (not just IPv4) |
+| **Entitlement middleware** | 403 if `cost_management` not entitled (defense-in-depth) |
+| **CORS** | Explicit allowed-origins (`ROS_CORS_ALLOWED_ORIGINS`) |
+| **Kafka payload redaction** | DEBUG logs no longer leak message payloads |
+| **Internal endpoint audit** | SA identity + target `org_id` logged and metricked |
+| **Org allowlist** | Optional `ROS_INTERNAL_ALLOWED_ORGS` for internal endpoints |
+| **CSV body size limit** | Default reduced from 500 MiB → **100 MiB** |
+
+---
+
+## Operational Robustness
+
+| Capability | Purpose |
+|------------|---------|
+| **Manifest ID synthesis** | Deterministic UUID v5 when operator sends empty `manifest_id` — never loses tracking |
+| **Synthesized manifest debounce** | Quiet period before recommendations — avoids premature execution on partial data |
+| **Single-flight coalescing** | Savings recalc, reship, threshold guards — latest-params-win |
+| **Graceful async shutdown** | `asyncjobs` package with shared context + 30s drain timeout |
+| **Concurrent Kafka commit mutex** | Prevents race conditions with parallel consumers |
+| **Strict analytics mode** | Default-on (`ROS_INGEST_STRICT_ANALYTICS=true`) |
+| **Bounded caches** | LRU for RBAC permissions + fleet summary — no unbounded memory growth |
+| **History default window** | 30-day cap when no date filters provided |
+
+---
+
+## Governance & Architecture
+
+| Area | Delivered |
+|------|-----------|
+| **Adversarial reviews** | 3 comprehensive due diligence reviews (v1.6, v2.0, v3.0) |
+| **Findings** | **76** identified across security, correctness, auditability, ops, performance, design, maintainability, governance |
+| **Resolution** | **All resolved** — fixed, mitigated, or accepted with rationale · **zero open** |
+| **ADRs** | **162** Architecture Decision Records — enriched with "Alternatives Considered" |
+| **Kruize deprecation** | Formal ADR to remove Kruize plugin |
+| **CI enforcement** | OpenAPI/CHANGELOG advisory · ADR reminder on architectural paths · weekly `govulncheck` |
+| **Documentation** | Public `docs-site/` · operations runbooks · monitoring guides · configuration reference |
+
+---
+
 ## Roadmap
 
-**Delivered (backend complete — phase 12)**
+**Delivered (backend complete — phase 12 + hardening)**
 
 - **All recommendation types:** container, namespace, node, GPU (MIG + time-slicing), PVC, ResourceQuota, ClusterResourceQuota, snapshot, VM (CPU/memory/disk/I/O/GPU)
 - **API depth:** history endpoints (namespace, quota, CRQ, container); namespace boxplots; PVC detail + `mounted_by`; quota/CRQ detail, filters, order_by; node instance-type awareness
 - **FinOps & ops:** cost model integration, dollar savings, business hours, tags, idle/zombie/abandoned, snapshot staleness, adaptive margins (CPU), 3-tier thresholds, global settings lock, keyset pagination
 - **Notifications:** 75 structured codes (quota 70–73, node pod scheduling, VM/GPU/PVC/snapshot families)
-- **Test & docs:** cost-onprem-chart E2E (all types above); IQE plugins (GPU unblocked); OpenAPI contract tests; Bruno collections; docs-site feature pages
+- **Production hardening:** adversarial reviews (76 findings, zero open); SSRF/CORS/entitlement/audit controls; manifest debounce + single-flight guards; bounded caches; 162 ADRs; CI governance
+- **Test & docs:** cost-onprem-chart E2E (all types above); IQE plugins (GPU unblocked); OpenAPI contract tests; Bruno collections; docs-site + runbooks
 
 **Near term**
 
@@ -370,13 +422,15 @@ Integer arithmetic · keyset pagination · pre-computed stats · batch ops · st
 ## Roadmap: Strategic Direction
 
 ```
-Delivered (phase 12)         Near term               Medium term
-──────────────────           ─────────               ───────────
-All rec types + APIs         Seasonality design      Node Tier 3 (MA)
-E2E + IQE + OpenAPI + Bruno  MachineSet (Tier 2)     Java / JVM / Quarkus
-History / savings / tags     UI (NS/GPU/quota/PVC/VM) Multi-GPU bin-pack
-Notifications (75)           (backend complete)      Live migration (VM)
-Settings (3-tier + lock)                             Network / VPA / HPA / fleet
+Delivered (phase 12 + hardening)  Near term               Medium term
+───────────────────────────────   ─────────               ───────────
+All rec types + APIs              Seasonality design      Node Tier 3 (MA)
+E2E + IQE + OpenAPI + Bruno       MachineSet (Tier 2)     Java / JVM / Quarkus
+History / savings / tags          UI (NS/GPU/quota/PVC/VM) Multi-GPU bin-pack
+Notifications (75)                (backend complete)      Live migration (VM)
+Settings (3-tier + lock)
+Security + ops hardening
+76 findings resolved · 162 ADRs
 ```
 
 One engine · one database · one language — **continuous delivery** without Kruize release cycles
@@ -399,6 +453,7 @@ One engine · one database · one language — **continuous delivery** without K
 | Resources | **50×** less RAM (~128 MB vs. 4 GB) |
 | Speed | **100×** faster on hot paths |
 | Architecture | **Single binary, single DB, single language** |
+| Security & governance | **76** adversarial findings resolved · **162 ADRs** · CI enforcement |
 | Future | **Extensible plugin architecture** |
 
 **Resource Optimization for OpenShift: The Native Engine**
