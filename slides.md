@@ -425,18 +425,39 @@ Integer arithmetic · keyset pagination · pre-computed stats · batch ops · st
 
 ## Roadmap: Strategic Direction
 
-```
-Delivered (phase 12 + hardening)  Near term               Medium term
-───────────────────────────────   ─────────               ───────────
-All rec types + APIs              Seasonality design      Node Tier 3 (MA)
-E2E + IQE + OpenAPI + Bruno       MachineSet (Tier 2)     Java / JVM / Quarkus
-History / savings / tags          UI (NS/GPU/quota/PVC/VM) Multi-GPU bin-pack
-Notifications (75)                (backend complete)      Live migration (VM)
+<div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1.5em; font-size: 0.75em;">
+<div>
+
+### ✅ Delivered
+All rec types + APIs
+E2E + IQE + OpenAPI + Bruno
+History / savings / tags
+Notifications (75)
 Settings (3-tier + lock)
 Security + ops hardening
-85 findings resolved · 290+ ADRs
+85 findings · 290+ ADRs
 Performance audit v2
-```
+
+</div>
+<div>
+
+### 🔜 Near term
+Seasonality design
+MachineSet (Tier 2)
+UI (NS/GPU/quota/PVC/VM)
+*(backend complete)*
+
+</div>
+<div>
+
+### 🔮 Medium term
+Node Tier 3 (MA)
+Java / JVM / Quarkus
+Multi-GPU bin-pack
+Live migration (VM)
+
+</div>
+</div>
 
 One engine · one database · one language — **continuous delivery** without Kruize release cycles
 
