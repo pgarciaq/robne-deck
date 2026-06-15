@@ -277,10 +277,11 @@ Not a faster Kruize wrapper — a **full recommendation engine**
 
 - **Zero data copying** — read/write same PostgreSQL as Koku
 - **Integer math** — cents, basis points; no float drift
+- **Decay lookup tables** (ADR-0288) — precomputed weights replace per-row `math.Exp` in digest hot path (~0.2% quantization)
 - **Streaming ingestion** — single-pass CSV, constant memory
-- **Keyset pagination** — stable latency at any depth
-- **Pre-computed org stats** — O(1) aggregate lookups
-- **Batch DB ops** — fewer round trips; **no JVM GC pauses**
+- **Keyset pagination** — stable latency at any depth; **~1000×** faster page selection at 200K+ containers
+- **Pre-computed org stats** — O(1) aggregate lookups; deferred refresh per reconcile cycle (**50–90%** faster writes)
+- **Batch DB ops** — `pgx.Batch` (chunk 500) for writes, savings recalc, tag sync; **no JVM GC pauses**
 
 ---
 
@@ -329,13 +330,15 @@ Integer arithmetic · keyset pagination · pre-computed stats · batch ops · st
 
 | Layer | Scope |
 |-------|-------|
-| **cost-onprem-chart E2E** | Namespace BH, node idle/consolidation, GPU MIG (cost + ROS), GPU time-slicing, VM GPU, PVC, ClusterResourceQuota |
+| **cost-onprem-chart E2E** | **477 passed** on UXSNO cluster (Jun 2026) — all core recommendation types validated |
+| **E2E infrastructure** | Session-scoped auto-seeding fixture — NISE data generated when DB below thresholds; idempotent |
+| **On-prem DB grants** | `ros_user` SELECT on Koku tenant schemas — tag filtering without cross-DB copies |
 | **IQE cost-management** | Container, namespace, node, CRQ, GPU/MIG (COST-7179 unblocked) |
 | **IQE ros-ocp** | GPU/MIG on native paths; namespace tests migrated off Kruize |
 | **OpenAPI contract tests** | All recommendation routes — request/response shape parity |
 | **Bruno collections** | Manual QA across Optimizations endpoints (detail, filters, history, savings) |
 
-**Documentation:** docs-site feature pages per type · architecture (GPU, node tiers, seasonality design)
+**Documentation:** docs-site synced with phase 13 · decay weights · percentile-band plots
 
 ---
 
@@ -343,7 +346,7 @@ Integer arithmetic · keyset pagination · pre-computed stats · batch ops · st
 
 # Production Hardening
 
-## Phase 12 continued — adversarial reviews, security, ops, governance
+## Phase 13 continued — adversarial reviews v5, performance audit v2, E2E validation
 
 ---
 
@@ -351,7 +354,7 @@ Integer arithmetic · keyset pagination · pre-computed stats · batch ops · st
 
 | Control | Implementation |
 |---------|----------------|
-| **SSRF protection** | Fail-closed DNS resolution; IPv6 private network blocking (not just IPv4) |
+| **SSRF protection** | Host allowlist + private-network deny; **allowlisted hosts bypass deny** (on-prem S3/RGW) — defense-in-depth, not disabled |
 | **Entitlement middleware** | 403 if `cost_management` not entitled (defense-in-depth) |
 | **CORS** | Explicit allowed-origins (`ROS_CORS_ALLOWED_ORIGINS`) |
 | **Kafka payload redaction** | DEBUG logs no longer leak message payloads |
@@ -380,10 +383,10 @@ Integer arithmetic · keyset pagination · pre-computed stats · batch ops · st
 
 | Area | Delivered |
 |------|-----------|
-| **Adversarial reviews** | 3 comprehensive due diligence reviews (v1.6, v2.0, v3.0) |
-| **Findings** | **76** identified across security, correctness, auditability, ops, performance, design, maintainability, governance |
+| **Adversarial reviews** | 5 due diligence rounds through v5.0 (Jun 2026) — performance audit v2 |
+| **Findings** | **85** identified across security, correctness, auditability, ops, performance, design, maintainability, governance |
 | **Resolution** | **All resolved** — fixed, mitigated, or accepted with rationale · **zero open** |
-| **ADRs** | **162** Architecture Decision Records — enriched with "Alternatives Considered" |
+| **ADRs** | **290+** Architecture Decision Records — decay lookup (0288), integer savings (0291), plots (0292) |
 | **Kruize deprecation** | Formal ADR to remove Kruize plugin |
 | **CI enforcement** | OpenAPI/CHANGELOG advisory · ADR reminder on architectural paths · weekly `govulncheck` |
 | **Documentation** | Public `docs-site/` · operations runbooks · monitoring guides · configuration reference |
@@ -398,8 +401,9 @@ Integer arithmetic · keyset pagination · pre-computed stats · batch ops · st
 - **API depth:** history endpoints (namespace, quota, CRQ, container); namespace boxplots; PVC detail + `mounted_by`; quota/CRQ detail, filters, order_by; node instance-type awareness
 - **FinOps & ops:** cost model integration, dollar savings, business hours, tags, idle/zombie/abandoned, snapshot staleness, adaptive margins (CPU), 3-tier thresholds, global settings lock, keyset pagination
 - **Notifications:** 75 structured codes (quota 70–73, node pod scheduling, VM/GPU/PVC/snapshot families)
-- **Production hardening:** adversarial reviews (76 findings, zero open); SSRF/CORS/entitlement/audit controls; manifest debounce + single-flight guards; bounded caches; 162 ADRs; CI governance
-- **Test & docs:** cost-onprem-chart E2E (all types above); IQE plugins (GPU unblocked); OpenAPI contract tests; Bruno collections; docs-site + runbooks
+- **Production hardening:** adversarial reviews v5 (85 findings, zero open); SSRF allowlist precedence; manifest debounce + single-flight guards; bounded caches; 290+ ADRs; CI governance
+- **Performance audit v2:** decay lookup tables, batched savings/tag sync, slim list DTOs, GPU page-scoped enrichment
+- **Test & docs:** UXSNO E2E **477 passed**; auto-seeding fixture; IQE plugins (GPU unblocked); docs-site phase 13 sync
 
 **Near term**
 
@@ -430,7 +434,8 @@ History / savings / tags          UI (NS/GPU/quota/PVC/VM) Multi-GPU bin-pack
 Notifications (75)                (backend complete)      Live migration (VM)
 Settings (3-tier + lock)
 Security + ops hardening
-76 findings resolved · 162 ADRs
+85 findings resolved · 290+ ADRs
+Performance audit v2
 ```
 
 One engine · one database · one language — **continuous delivery** without Kruize release cycles
@@ -453,7 +458,8 @@ One engine · one database · one language — **continuous delivery** without K
 | Resources | **50×** less RAM (~128 MB vs. 4 GB) |
 | Speed | **100×** faster on hot paths |
 | Architecture | **Single binary, single DB, single language** |
-| Security & governance | **76** adversarial findings resolved · **162 ADRs** · CI enforcement |
+| Security & governance | **85** adversarial findings resolved · **290+ ADRs** · CI enforcement |
+| E2E validation | **477 passed** on UXSNO — core functionality validated |
 | Future | **Extensible plugin architecture** |
 
 **Resource Optimization for OpenShift: The Native Engine**
