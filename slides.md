@@ -185,7 +185,7 @@ Cluster metrics
 | Container CPU/Memory | ✅ | ✅ (production-ready) |
 | Namespace recommendations | ✅ (upstream only) | ✅ (history, BH, boxplots, notifications) |
 | GPU MIG slicing | ✅ (upstream only) | ✅ (cost + ROS E2E, IQE validated) |
-| GPU time-slicing | ❌ | ✅ (cluster filter, Helm defaults) |
+| GPU time-slicing | ❌ | ✅ (persisted at ingest, history, backfill) |
 | Java recommendations | ✅ (upstream only) | ❌ (planned) |
 | Node right-sizing | ❌ | ✅ (instance type, idle/consolidation, allocatable) |
 | PVC right-sizing | ❌ | ✅ (detail, filters, order_by, mounted_by) |
@@ -216,6 +216,7 @@ Cluster metrics
 | Configurable thresholds | Limited | ✅ (3-tier) |
 | Keyset pagination | ❌ | ✅ |
 | Notification codes (75) | Limited | ✅ |
+| Recommendation explanations | ❌ | ✅ (`?include=explanation`) |
 | Historical recommendations | ❌ | ✅ |
 | Global settings lock | ❌ | ✅ |
 | Adaptive margins (CPU) | ❌ | ✅ |
@@ -276,7 +277,7 @@ Not a faster Kruize wrapper — a **full recommendation engine**
 ## Performance: How We Got There
 
 - **Zero data copying** — read/write same PostgreSQL as Koku
-- **Integer math** — cents, basis points; no float drift
+- **Integer-first arithmetic** (ADR-0295) — cents, millicores, basis points, micro-cents; float64 only at boundaries
 - **Decay lookup tables** (ADR-0288) — precomputed weights replace per-row `math.Exp` in digest hot path (~0.2% quantization)
 - **Streaming ingestion** — single-pass CSV, constant memory
 - **Keyset pagination** — stable latency at any depth; **~1000×** faster page selection at 200K+ containers
@@ -338,7 +339,7 @@ Integer arithmetic · keyset pagination · pre-computed stats · batch ops · st
 | **OpenAPI contract tests** | All recommendation routes — request/response shape parity |
 | **Bruno collections** | Manual QA across Optimizations endpoints (detail, filters, history, savings) |
 
-**Documentation:** docs-site synced with phase 13 · decay weights · percentile-band plots
+**Documentation:** docs-site synced with phase 14 · decay weights · percentile-band plots · explanation docs
 
 ---
 
@@ -346,7 +347,7 @@ Integer arithmetic · keyset pagination · pre-computed stats · batch ops · st
 
 # Production Hardening
 
-## Phase 13 continued — adversarial reviews v5, performance audit v2, E2E validation
+## Phases 13–14 — adversarial reviews v5, performance audit v2, explanations, GPU persistence
 
 ---
 
@@ -386,7 +387,7 @@ Integer arithmetic · keyset pagination · pre-computed stats · batch ops · st
 | **Adversarial reviews** | 5 due diligence rounds through v5.0 (Jun 2026) — performance audit v2 |
 | **Findings** | **85** identified across security, correctness, auditability, ops, performance, design, maintainability, governance |
 | **Resolution** | **All resolved** — fixed, mitigated, or accepted with rationale · **zero open** |
-| **ADRs** | **290+** Architecture Decision Records — decay lookup (0288), integer savings (0291), plots (0292) |
+| **ADRs** | **295+** Architecture Decision Records — integer-first (0295), explanations (0296), GPU TS persistence (0297) |
 | **Kruize deprecation** | Formal ADR to remove Kruize plugin |
 | **CI enforcement** | OpenAPI/CHANGELOG advisory · ADR reminder on architectural paths · weekly `govulncheck` |
 | **Documentation** | Public `docs-site/` · operations runbooks · monitoring guides · configuration reference |
@@ -395,15 +396,16 @@ Integer arithmetic · keyset pagination · pre-computed stats · batch ops · st
 
 ## Roadmap
 
-**Delivered (backend complete — phase 12 + hardening)**
+**Delivered (backend complete — phases 12–14)**
 
 - **All recommendation types:** container, namespace, node, GPU (MIG + time-slicing), PVC, ResourceQuota, ClusterResourceQuota, snapshot, VM (CPU/memory/disk/I/O/GPU)
 - **API depth:** history endpoints (namespace, quota, CRQ, container); namespace boxplots; PVC detail + `mounted_by`; quota/CRQ detail, filters, order_by; node instance-type awareness
 - **FinOps & ops:** cost model integration, dollar savings, business hours, tags, idle/zombie/abandoned, snapshot staleness, adaptive margins (CPU), 3-tier thresholds, global settings lock, keyset pagination
 - **Notifications:** 75 structured codes (quota 70–73, node pod scheduling, VM/GPU/PVC/snapshot families)
-- **Production hardening:** adversarial reviews v5 (85 findings, zero open); SSRF allowlist precedence; manifest debounce + single-flight guards; bounded caches; 290+ ADRs; CI governance
+- **Production hardening:** adversarial reviews v5 (85 findings, zero open); SSRF allowlist precedence; manifest debounce + single-flight guards; bounded caches; 295+ ADRs; CI governance
 - **Performance audit v2:** decay lookup tables, batched savings/tag sync, slim list DTOs, GPU page-scoped enrichment
-- **Test & docs:** UXSNO E2E **477 passed**; auto-seeding fixture; IQE plugins (GPU unblocked); docs-site phase 13 sync
+- **Phase 14:** recommendation explanations (`?include=explanation` on detail endpoints); GPU time-slicing persistence (compute-at-ingest, history, backfill endpoint)
+- **Test & docs:** UXSNO E2E **477 passed**; auto-seeding fixture; IQE plugins (GPU unblocked); docs-site phase 14 sync
 
 **Near term**
 
@@ -435,8 +437,8 @@ History / savings / tags
 Notifications (75)
 Settings (3-tier + lock)
 Security + ops hardening
-85 findings · 290+ ADRs
-Performance audit v2
+85 findings · 295+ ADRs
+Perf audit v2 · explanations
 
 </div>
 <div>
@@ -479,7 +481,7 @@ One engine · one database · one language — **continuous delivery** without K
 | Resources | **50×** less RAM (~128 MB vs. 4 GB) |
 | Speed | **100×** faster on hot paths |
 | Architecture | **Single binary, single DB, single language** |
-| Security & governance | **85** adversarial findings resolved · **290+ ADRs** · CI enforcement |
+| Security & governance | **85** adversarial findings resolved · **295+ ADRs** · CI enforcement |
 | E2E validation | **477 passed** on UXSNO — core functionality validated |
 | Future | **Extensible plugin architecture** |
 
