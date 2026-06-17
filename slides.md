@@ -11,6 +11,86 @@ style: |
 
 <!-- _class: lead -->
 
+# 10-Minute Overview
+
+## What the Native Engine Delivers
+
+---
+
+## What You Get: Full-Spectrum Optimization
+
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1em; font-size: 0.68em;">
+<div>
+
+**Right-sizing across every resource type**
+
+| Workload | Capabilities |
+|----------|-------------|
+| Containers | CPU + memory, dual engine (cost / perf) |
+| Namespaces | Aggregate sizing, boxplots, history |
+| Nodes | Instance type matching, idle/consolidation |
+| GPUs | MIG profiling, time-slicing, classification |
+| PVCs | Capacity, pod context, mounted_by |
+| Quotas | ResourceQuota + ClusterResourceQuota |
+| VMs | CPU/memory/disk/I/O, GPU, crash loops |
+| Snapshots | Staleness detection |
+
+</div>
+<div>
+
+**FinOps intelligence built in**
+
+- **Dollar savings** — cost model integration with Koku rates, markup, and distributed costs
+- **Business hours** — recommendations scoped to working vs off-hours windows
+- **Tag filtering** — group and filter by OpenShift labels across all recommendation types
+- **Idle & zombie detection** — flag workloads consuming resources with zero useful work
+- **75 notification codes** — structured, actionable alerts per recommendation
+- **Recommendation explanations** — human-readable rationale via `?include=explanation`
+- **Historical tracking** — see how recommendations evolve over time
+
+</div>
+</div>
+
+---
+
+## Why It Matters
+
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5em; font-size: 0.72em;">
+<div>
+
+### Performance at scale
+
+| Metric | Value |
+|--------|-------|
+| API latency (page 1) | **< 100 ms** |
+| Deep pagination | **< 500 ms** (keyset) |
+| 200K+ containers | **Full scan in seconds** |
+| Memory footprint | **~128 MB** |
+| Cold start | **< 1 s** |
+
+Single binary · single database · single language
+
+</div>
+<div>
+
+### Operationally ready
+
+- **3-tier configurability** — env vars → Settings API → sensible defaults; every threshold tunable, lockable
+- **Global settings lock** — prevent per-workload overrides when fleet consistency matters
+- **Dual engine** — cost-optimized or performance-optimized recommendations, same API
+- **Adaptive margins** — CPU headroom adjusts to workload variability
+- **Plugin architecture** — add new recommendation types without replacing the engine
+- **295+ ADRs** — every design decision documented and traceable
+
+</div>
+</div>
+
+**One engine that covers containers, namespaces, nodes, GPUs, PVCs, quotas, VMs, and snapshots — with dollar savings, business hours, tags, and full configurability.**
+
+---
+
+<!-- _class: lead -->
+
 # Resource Optimization for OpenShift
 
 ## The Native Engine
@@ -486,83 +566,3 @@ One engine · one database · one language — **continuous delivery** without K
 | Future | **Extensible plugin architecture** |
 
 **Resource Optimization for OpenShift: The Native Engine**
-
----
-
-<!-- _class: lead -->
-
-# 10-Minute Overview
-
-## What the Native Engine Delivers
-
----
-
-## What You Get: Full-Spectrum Optimization
-
-<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1em; font-size: 0.68em;">
-<div>
-
-**Right-sizing across every resource type**
-
-| Workload | Capabilities |
-|----------|-------------|
-| Containers | CPU + memory, dual engine (cost / perf) |
-| Namespaces | Aggregate sizing, boxplots, history |
-| Nodes | Instance type matching, idle/consolidation |
-| GPUs | MIG profiling, time-slicing, classification |
-| PVCs | Capacity, pod context, mounted_by |
-| Quotas | ResourceQuota + ClusterResourceQuota |
-| VMs | CPU/memory/disk/I/O, GPU, crash loops |
-| Snapshots | Staleness detection |
-
-</div>
-<div>
-
-**FinOps intelligence built in**
-
-- **Dollar savings** — cost model integration with Koku rates, markup, and distributed costs
-- **Business hours** — recommendations scoped to working vs off-hours windows
-- **Tag filtering** — group and filter by OpenShift labels across all recommendation types
-- **Idle & zombie detection** — flag workloads consuming resources with zero useful work
-- **75 notification codes** — structured, actionable alerts per recommendation
-- **Recommendation explanations** — human-readable rationale via `?include=explanation`
-- **Historical tracking** — see how recommendations evolve over time
-
-</div>
-</div>
-
----
-
-## Why It Matters
-
-<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5em; font-size: 0.72em;">
-<div>
-
-### Performance at scale
-
-| Metric | Value |
-|--------|-------|
-| API latency (page 1) | **< 100 ms** |
-| Deep pagination | **< 500 ms** (keyset) |
-| 200K+ containers | **Full scan in seconds** |
-| Memory footprint | **~128 MB** |
-| Cold start | **< 1 s** |
-
-Single binary · single database · single language
-
-</div>
-<div>
-
-### Operationally ready
-
-- **3-tier configurability** — env vars → Settings API → sensible defaults; every threshold tunable, lockable
-- **Global settings lock** — prevent per-workload overrides when fleet consistency matters
-- **Dual engine** — cost-optimized or performance-optimized recommendations, same API
-- **Adaptive margins** — CPU headroom adjusts to workload variability
-- **Plugin architecture** — add new recommendation types without replacing the engine
-- **295+ ADRs** — every design decision documented and traceable
-
-</div>
-</div>
-
-**One engine that covers containers, namespaces, nodes, GPUs, PVCs, quotas, VMs, and snapshots — with dollar savings, business hours, tags, and full configurability.**
