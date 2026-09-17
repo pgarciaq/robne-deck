@@ -414,8 +414,9 @@ Integer arithmetic · keyset pagination · pre-computed stats · batch ops · st
 ### `robne` CLI — offline & batch
 
 - `make robne` → CGO-free `bin/robne`
-- Phases 1–3 shipped: container `pgdigest` INSERT/SELECT, other-entity rec upserts, stdout modes, business hours
-- `diff` + `explain` across entities · `robne version`
+- `recommend` across all plugins — container, namespace, node, GPU, PVC, VM, quota, cluster-quota, snapshot (CSV files or Postgres; table/JSON output)
+- `validate` tarballs · `diff` runs · `explain` any recommendation · `version`
+- Rate cards, business hours, PG digest/rec upserts — same engine, no server
 - Contract: `docs/plans/robne-cli-spec.md`
 
 </div>
