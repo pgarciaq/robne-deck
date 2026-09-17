@@ -3,6 +3,7 @@ name: Deploy GitHub Pages
 on:
   push:
     branches:
+      - master
       - pgarciaq-rosocp-superpowers-phase10
   workflow_dispatch:
 
