@@ -44,7 +44,7 @@ style: |
 - **Business hours** — recommendations scoped to working vs off-hours windows
 - **Tag filtering** — group and filter by OpenShift labels across all recommendation types
 - **Idle & zombie detection** — flag workloads consuming resources with zero useful work
-- **75 notification codes** — structured, actionable alerts per recommendation
+- **82 notification codes** — structured, actionable alerts per recommendation
 - **Recommendation explanations** — human-readable rationale via `?include=explanation`
 - **Historical tracking** — see how recommendations evolve over time
 
@@ -64,11 +64,11 @@ style: |
 |--------|-------|
 | API latency (page 1) | **< 100 ms** |
 | Deep pagination | **< 500 ms** (keyset) |
-| 200K+ containers | **Full scan in seconds** |
-| Memory footprint | **~128 MB** |
+| 100K scale (84K measured) | **525K recs in ~87 min** processor wall |
+| Memory footprint | **50–100 MiB** typical (peak RSS ~600 MB at 100K) |
 | Cold start | **< 1 s** |
 
-Single binary · single database · single language
+Shared library · single database · single language
 
 </div>
 <div>
@@ -80,12 +80,12 @@ Single binary · single database · single language
 - **Dual engine** — cost-optimized or performance-optimized recommendations, same API
 - **Adaptive margins** — CPU headroom adjusts to workload variability
 - **Plugin architecture** — add new recommendation types without replacing the engine
-- **320+ ADRs** — every design decision documented and traceable
+- **327 ADRs** — every design decision documented and traceable
 
 </div>
 </div>
 
-**One engine that covers containers, namespaces, nodes, GPUs, PVCs, quotas, VMs, and snapshots — with dollar savings, business hours, tags, and full configurability.**
+**One engine that covers containers, namespaces, nodes, GPUs, PVCs, quotas, VMs, and snapshots — with dollar savings, business hours, tags, full configurability, a standalone CLI, an embeddable library, and visual insights.**
 
 ---
 
@@ -228,7 +228,7 @@ Cluster metrics
 | Kruize JVM heap | **2–4 GB** RAM; slow cold start (**30–60 s**) |
 | GC pauses | Latency spikes under load |
 | Deep pagination | **30 s+** (OFFSET scans) |
-| Large tenants | **Timeouts** at **200K+** containers |
+| Large tenants | **Timeouts** from 5K containers up |
 | Minimum pod | **4 GB RAM** for Kruize |
 
 **Result:** ROS could not scale with enterprise OpenShift estates.
@@ -263,7 +263,7 @@ Cluster metrics
 | Feature | Kruize | Native Engine |
 |---------|:------:|:-------------:|
 | Container CPU/Memory | ✅ | ✅ (production-ready) |
-| Namespace recommendations | ✅ (upstream only) | ✅ (history, BH, boxplots, notifications) |
+| Namespace recommendations | ✅ (upstream only) | ✅ (history, BH detail nest, boxplots, notifications) |
 | GPU MIG slicing | ✅ (upstream only) | ✅ (cost + ROS E2E, IQE validated) |
 | GPU time-slicing | ❌ | ✅ (persisted at ingest, history, backfill) |
 | Java recommendations | ✅ (upstream only) | ❌ (planned) |
@@ -295,7 +295,7 @@ Cluster metrics
 | Multi-term recommendations | ❌ | ✅ |
 | Configurable thresholds | Limited | ✅ (3-tier) |
 | Keyset pagination | ❌ | ✅ |
-| Notification codes (75) | Limited | ✅ |
+| Notification codes (82) | Limited | ✅ |
 | Recommendation explanations | ❌ | ✅ (`?include=explanation`) |
 | Historical recommendations | ❌ | ✅ |
 | Global settings lock | ❌ | ✅ |
@@ -333,6 +333,7 @@ Not a faster Kruize wrapper — a **full recommendation engine**
 | Instance types | Static + per-cluster catalog; `gn1` GPU types |
 | Idle/Abandoned | OS-aware thresholds (Linux vs Windows) |
 | Crash loop | `kubevirt_vmi_phase_transition_time_seconds` |
+| Power-off scheduling | Notification 64; `power_schedule` settings; idle-% candidates |
 | Confidence | Graduated: high / moderate / low |
 | Downsize stability | Time-aware hysteresis (N consecutive days) |
 
@@ -348,8 +349,8 @@ Not a faster Kruize wrapper — a **full recommendation engine**
 | Math | Float-heavy JVM | **Integer:** cents, basis points, millicores |
 | Page 1 latency | 2–5 s | **< 100 ms** |
 | Deep pages | 30 s+ timeout | **< 500 ms** (keyset) |
-| 200K containers | Timeouts | **Full org scan in seconds** |
-| RAM | ~4 GB | **~128 MB** |
+| 100K scale (84K measured) | Timeouts at 5K | **525K recs in ~87 min wall** |
+| RAM | ~4 GB pod | **50–100 MiB** typical (peak ~600 MB) |
 | Cold start | 30–60 s | **< 1 s** |
 
 ---
@@ -360,7 +361,7 @@ Not a faster Kruize wrapper — a **full recommendation engine**
 - **Integer-first arithmetic** (ADR-0295) — cents, millicores, basis points, micro-cents; float64 only at boundaries
 - **Decay lookup tables** (ADR-0288) — precomputed weights replace per-row `math.Exp` in digest hot path (~0.2% quantization)
 - **Streaming ingestion** — single-pass CSV, constant memory
-- **Keyset pagination** — stable latency at any depth; **~1000×** faster page selection at 200K+ containers
+- **Keyset pagination** — stable latency at any depth; **~1000×** faster page selection at 100K scale
 - **Pre-computed org stats** — O(1) aggregate lookups; deferred refresh per reconcile cycle (**50–90%** faster writes)
 - **Batch DB ops** — `pgx.Batch` (chunk 500) for writes, savings recalc, tag sync; **no JVM GC pauses**
 
@@ -368,7 +369,7 @@ Not a faster Kruize wrapper — a **full recommendation engine**
 
 ## Technical Architecture
 
-**Go 1.25** — **100% API compatible** drop-in replacement
+**Go 1.26** — **99% API compatible** drop-in replacement
 
 ```
 ┌─────────────────────────────────────────────┐
@@ -383,7 +384,7 @@ Not a faster Kruize wrapper — a **full recommendation engine**
               PostgreSQL only (shared with Koku)
 ```
 
-- Same endpoints, same response shape — **only PostgreSQL required**
+- Same endpoints, same response shape — except plots (percentile bands, ADR-0292) — **only PostgreSQL required**
 
 ---
 
@@ -395,13 +396,52 @@ Not a faster Kruize wrapper — a **full recommendation engine**
 | **Enrich** | Context & policy | business hours, tags, snapshot staleness, idle/zombie/abandoned, OOM, GPU enrich on container APIs |
 | **Optimize** | FinOps value | cost model integration, dollar savings, fleet summary, **history** (container, namespace, quota, CRQ) |
 
-**Phase 2/3 (planned):** java, golang, hpa, vpa · binpacking, machineset (fleet)
+**Phase 2/3 (planned):** java/jvm, Go runtime advisory (#70), hpa, vpa · binpacking, machineset (fleet)
 
 **Key optimizations:**
 
 Integer arithmetic · keyset pagination · pre-computed stats · batch ops · streaming ingestion
 
 **Extensible** — new recommendation types without replacing the engine
+
+---
+
+## Beyond the Service Binary: CLI + Library
+
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5em; font-size: 0.72em;">
+<div>
+
+### `robne` CLI — offline & batch
+
+- `make robne` → CGO-free `bin/robne`
+- Phases 1–3 shipped: container `pgdigest` INSERT/SELECT, other-entity rec upserts, stdout modes, business hours
+- `diff` + `explain` across entities · `robne version`
+- Contract: `docs/plans/robne-cli-spec.md`
+
+</div>
+<div>
+
+### `librobne` — embeddable engine
+
+- CGO-free Go module: container, GPU, namespace, digest, CSV, fixed-point math
+- Same recommendation math as the service — no Kafka, no DB required
+- Baselines: `docs/performance/librobne-baseline-841639f3/`
+- Path to on-cluster (`robne-operator`) and SaaS embedding
+
+</div>
+</div>
+
+One engine, three shapes: **service · CLI · library**
+
+---
+
+## Visual Insights + Fleet Heatmap
+
+- **Charts, gauges, and heatmaps** on recommendation detail pages — all entity types
+- Phases 1–3 shipped; only list-view sparklines remaining
+- **Fleet heatmap** endpoint — at-a-glance hot spots across the estate
+- Percentile-band plots · boxplots with CPU-throttle trend · OOM timelines
+- History views show how recommendations evolve — audit-ready FinOps
 
 ---
 
@@ -423,7 +463,7 @@ Integer arithmetic · keyset pagination · pre-computed stats · batch ops · st
 
 ---
 
-## Scale Benchmark: 100K Containers (Jul 2026)
+## Scale Benchmark: 100K Containers, Processor Wall Time (Jul 2026)
 
 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5em; font-size: 0.72em;">
 <div>
@@ -436,7 +476,7 @@ Integer arithmetic · keyset pagination · pre-computed stats · batch ops · st
 | VMs / GPU / PVCs | 2,500 / 2,500 / 12,000 |
 | Digests processed | **~2M** |
 | Total recommendations | **525,044** |
-| Wall time | **~87 min** |
+| Wall time | **~87 min** (ROS processor; direct-to-MinIO) |
 | Replicas | **1** |
 | Pod restarts | **0** |
 | DB size | 3.5 GB |
@@ -451,13 +491,15 @@ Integer arithmetic · keyset pagination · pre-computed stats · batch ops · st
 | Containers | 5,000 | **84,000** (16.8×) |
 | Wall time | 3h 17m | **87 min** (2.3× faster) |
 | Replicas | **10** | **1** (10× fewer) |
-| Max memory | 43.5 GB | ~10 MiB (**~4,500×** less) |
+| Max memory (peak) | 43.5 GB | **~600 MB RSS (~70× less)** |
 | DB size | 22 GB | 3.5 GB (6× smaller) |
 
 </div>
 </div>
 
-**Industry context:** CNCF median ~370 containers/cluster · Datadog top percentile ~5,000+ · **100K = ~270× median** · scales to **20+ large clusters** on one pod
+**Industry context:** CNCF median ~370 containers/cluster · Datadog top percentile ~5,000+ · **100K = ~270× median** · scales to **20+ large clusters** on one pod · pre-dual-stream-BH (phase-17 re-run: #518)
+
+**Scope:** ROS-processor wall time only — direct-to-MinIO bypasses the Koku listener bottleneck; ~56 min file-upload harness time and ~5.3 h nise generation excluded. Production listeners scale horizontally, so listener time stays negligible. Memory is peak-to-peak; typical native RSS runs 50–100 MiB (~450–900× less than the Kruize max).
 
 ---
 
@@ -465,7 +507,7 @@ Integer arithmetic · keyset pagination · pre-computed stats · batch ops · st
 
 # Production Hardening
 
-## Phases 13–16 — adversarial reviews v10, performance audit v4, engine refactoring, scalability
+## Phases 13–17 — reviews v14, librobne, dual-stream BH, tenant isolation, HCP waves
 
 ---
 
@@ -480,6 +522,7 @@ Integer arithmetic · keyset pagination · pre-computed stats · batch ops · st
 | **Internal endpoint audit** | SA identity + target `org_id` logged and metricked |
 | **Org allowlist** | Optional `ROS_INTERNAL_ALLOWED_ORGS` for internal endpoints |
 | **CSV body size limit** | Default reduced from 500 MiB → **100 MiB** |
+| **Tenant isolation** | `org_id` on clusters + GPU digest key (NOT NULL); org-scoped reads (#445/#512) |
 
 ---
 
@@ -496,6 +539,7 @@ Integer arithmetic · keyset pagination · pre-computed stats · batch ops · st
 | **Bounded caches** | LRU for RBAC permissions + fleet summary — no unbounded memory growth |
 | **DecayTableLookup cap** | Capped at 100K entries to prevent OOM under `-race` and large-scale ingestion |
 | **History default window** | 30-day cap when no date filters provided |
+| **Bounded DLQ** | Delivery with honest metrics — poison messages can't stall the pipeline (#577) |
 
 ---
 
@@ -503,12 +547,13 @@ Integer arithmetic · keyset pagination · pre-computed stats · batch ops · st
 
 | Area | Delivered |
 |------|-----------|
-| **Adversarial reviews** | 10 due diligence rounds through v10.0 (Jul 2026) — performance audit v4 |
-| **Findings** | **105+** identified across security, correctness, auditability, ops, performance, design, maintainability, governance |
-| **Resolution** | **All resolved** — fixed, mitigated, or accepted with rationale · **zero open** |
-| **ADRs** | **320+** Architecture Decision Records — engine God-package split, decay table cap, model/types extraction |
-| **Engine refactoring** | `internal/engine` God package → 9 sub-packages (core, container, namespace, node, gpu, pvc, quota, snapshot, vm) |
-| **Kruize deprecation** | Formal ADR to remove Kruize plugin |
+| **Adversarial reviews** | 14 rounds through v14 (Sep 2026) — v11: 9 new · v12: 11 new · v13 batch (#504–#510, closed) · v14: 26 new, all Low |
+| **Findings** | **150+** identified across security, correctness, auditability, ops, performance, design, maintainability, governance |
+| **Resolution** | v11–v13 closed or accepted-risk · v14 residuals tracked: #511 (postponed), #513 (open chore) |
+| **ADRs** | **327** Architecture Decision Records — engine split, decay table cap, model/types extraction, HCP waves W0–W5 |
+| **Engine refactoring** | `internal/engine` God package → 9 sub-packages (core, container, namespace, node, gpu, pvc, quota, snapshot, vm) · CGO-free `librobne` extracted |
+| **Kruize deprecation** | ADR-0163: legacy fallback removed — full plugin removal underway |
+| **FedRAMP** | Gap assessment: Class C (Moderate) target · OSCAL package · STIG mapping · risk assessment |
 | **CI enforcement** | OpenAPI/CHANGELOG advisory · ADR reminder on architectural paths · weekly `govulncheck` |
 | **Documentation** | Public `docs-site/` · operations runbooks · monitoring guides · configuration reference |
 
@@ -516,34 +561,41 @@ Integer arithmetic · keyset pagination · pre-computed stats · batch ops · st
 
 ## Roadmap
 
-**Delivered (backend complete — phases 12–16)**
+**Delivered (backend complete — phases 12–17)**
 
 - **All recommendation types:** container, namespace, node, GPU (MIG + time-slicing), PVC, ResourceQuota, ClusterResourceQuota, snapshot, VM (CPU/memory/disk/I/O/GPU)
 - **API depth:** history endpoints (namespace, quota, CRQ, container); namespace boxplots; PVC detail + `mounted_by`; quota/CRQ detail, filters, order_by; node instance-type awareness
 - **FinOps & ops:** cost model integration, dollar savings, business hours, tags, idle/zombie/abandoned, snapshot staleness, adaptive margins (CPU), 3-tier thresholds, global settings lock, keyset pagination
-- **Notifications:** 75 structured codes (quota 70–73, node pod scheduling, VM/GPU/PVC/snapshot families)
-- **Production hardening:** adversarial reviews v10 (105+ findings, zero open); SSRF allowlist precedence; manifest debounce + single-flight guards; bounded caches; 320+ ADRs; CI governance
+- **Notifications:** 82 structured codes (quota 70–72, CRQ 70–73, node pod scheduling, VM/GPU/PVC/snapshot families)
+- **Production hardening:** adversarial reviews v14 (150+ findings; residuals #511/#513 tracked); SSRF allowlist precedence; manifest debounce + single-flight guards; bounded caches; tenant isolation via `org_id`; bounded DLQ; 327 ADRs; FedRAMP gap assessment; CI governance
 - **Performance audit v4:** decay lookup tables, batched savings/tag sync, slim list DTOs, GPU page-scoped enrichment; DecayTableLookup capped at 100K entries (OOM prevention)
 - **Phase 14:** recommendation explanations (`?include=explanation` on detail endpoints); GPU time-slicing persistence (compute-at-ingest, history, backfill endpoint)
 - **Phase 15:** namespace/node pagination fixes; CPU throttle trend in boxplot; OOM timeline; recommendation categories (`undersized`/`oversized`/`optimized`); savings waterfall; fleet summary; GPU MIG SQL-backed pagination
 - **Phase 16:** engine God-package refactoring (`internal/engine` → 9 sub-packages); `model/types` extraction for lighter dependency chains; 100K container scale benchmark validated
-- **Test & docs:** UXSNO E2E **477 passed**; auto-seeding fixture; IQE plugins (GPU unblocked); docs-site phase 16 sync; scale benchmark report
+- **Phase 17:** dual-stream business-hours persist contract — all-hours rows, BH as GET-time nest (#516/#527); CGO-free `librobne` library + baseline; `robne` CLI (offline/batch, diff, explain); Visual Insights (charts, gauges, heatmaps, fleet heatmap); VM power-off scheduling (notification 64); MachineSet Tier 1 (`GET .../machinesets`); Optimizations UI tabs — Namespace, Node, Storage shipped; endpoint documentation (#570)
+- **Test & docs:** UXSNO E2E **477 passed** (Jul 2026, last full run); auto-seeding fixture; IQE plugins (GPU unblocked); docs-site synced past phase 16; scale benchmark report
 
 **Near term**
 
 - Seasonality / proactive recommendations (design documented)
-- Node Tier 2 — MachineSet right-sizing
-- **UI integration** — namespace, GPU, quota, PVC, VM views (backend-only today)
+- Node Tier 2a — MachineSet engine (Tier 1 aggregation shipped)
+- **UI tabs** — GPU, quota, VM views (Namespace, Node, Storage shipped)
+- HCP fleet optimization waves W0–W5 (design accepted; W0 landing: topology #407, code 83)
+- `robne-operator` on-cluster mode (CRD `ResourceOptimizationConfig` defined)
+- 100K benchmark re-run on phase 17 (#518)
 
 **Medium term**
 
 - Node Tier 3 — MachineAutoscaler recommendations
 - Java/JVM & Quarkus workload tuning
+- Go runtime advisory — GOMAXPROCS/GOMEMLIMIT (#70, needs operator `go_info` query)
 - Live migration cost awareness (VM)
 - Multi-GPU container consolidation (bin-packing)
 - Network-aware recommendations
 - VPA & HPA alignment
-- Cross-cluster fleet optimization
+- Cross-cluster VM placement
+- Upstreaming — robne PRs in SaaS review
+- SaaS Clowder cutover (planned)
 
 ---
 
@@ -554,23 +606,25 @@ Integer arithmetic · keyset pagination · pre-computed stats · batch ops · st
 
 ### ✅ Delivered
 All rec types + APIs
-E2E + IQE + OpenAPI + Bruno
+E2E (477, last full run) + IQE + OpenAPI + Bruno
 History / savings / tags
-Notifications (75)
+Notifications (82)
 Settings (3-tier + lock)
 Security + ops hardening
-105+ findings · 320+ ADRs
-Perf audit v4 · engine refactored
-100K scale benchmark validated
+150+ findings · 327 ADRs · v14
+Perf audit v4 · engine + librobne
+CLI · Visual Insights · UI tabs (NS/Node/Storage)
+100K bench (phase-17 re-run: #518)
 
 </div>
 <div>
 
 ### 🔜 Near term
 Seasonality design
-MachineSet (Tier 2)
-UI (NS/GPU/quota/PVC/VM)
-*(backend complete)*
+MachineSet Tier 2a
+UI (GPU/quota/VM)
+HCP waves W0–W5
+robne-operator mode
 
 </div>
 <div>
@@ -578,13 +632,49 @@ UI (NS/GPU/quota/PVC/VM)
 ### 🔮 Medium term
 Node Tier 3 (MA)
 Java / JVM / Quarkus
+Go advisory (#70)
 Multi-GPU bin-pack
 Live migration (VM)
+Upstreaming + Clowder
 
 </div>
 </div>
 
 One engine · one database · one language — **continuous delivery** without Kruize release cycles
+
+---
+
+## New Strategic Bets
+
+<div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1.5em; font-size: 0.72em;">
+<div>
+
+### HCP fleet optimization
+
+- Waves W0–W5, ADRs 0328–0335 accepted
+- Cluster-topology detection landing (W0: #407, code 83)
+- Management-CP guardrails · cross-plane causality
+
+</div>
+<div>
+
+### On-cluster mode
+
+- `robne-operator` (planned) — compute moves to the cluster
+- CRD `ResourceOptimizationConfig` defined
+- Same engine via `librobne` — no pipeline rework
+
+</div>
+<div>
+
+### Upstream + SaaS
+
+- Upstreaming PR plan — phase-17 robne PRs in SaaS review
+- SaaS Clowder cutover (planned)
+- FedRAMP Class C gap assessed (OSCAL package)
+
+</div>
+</div>
 
 ---
 
@@ -601,12 +691,12 @@ One engine · one database · one language — **continuous delivery** without K
 | Dimension | Improvement |
 |-----------|-------------|
 | Features | **15×** more capability vs. shipped Kruize |
-| Resources | **50×** less RAM (~128 MB vs. 4 GB) |
+| Resources | **~50×** less RAM (50–100 MiB typical vs 4 GB pod) |
 | Speed | **100×** faster on hot paths |
-| Architecture | **Single binary, single DB, single language** |
-| Security & governance | **105+** adversarial findings resolved · **320+ ADRs** · CI enforcement |
-| E2E validation | **477 passed** on UXSNO — core functionality validated |
-| Scalability | **100K containers** benchmarked on SNO — 525K recs in ~87 min on 1 pod |
+| Architecture | **One library, one DB, one language** (service + CLI) |
+| Security & governance | **150+** findings (v14) · **327 ADRs** · FedRAMP gap assessed · CI enforcement |
+| E2E validation | **477 passed** on UXSNO (last full run) — core functionality validated |
+| Scalability | **100K containers** on SNO — 525K recs in ~87 min processor wall on 1 pod |
 | Future | **Extensible plugin architecture** |
 
 **Resource Optimization for OpenShift: The Native Engine**
