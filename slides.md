@@ -423,7 +423,8 @@ Integer arithmetic · keyset pagination · pre-computed stats · batch ops · st
 
 ### `librobne` — embeddable engine
 
-- CGO-free Go module: container, GPU, namespace, digest, CSV, fixed-point math
+- CGO-free Go module: full engine coverage — container, GPU, namespace, node, PVC, quota, snapshot, VM, HCP
+- Digest/CSV I/O, savings, business-hours, fixed-point math included
 - Same recommendation math as the service — no Kafka, no DB required
 - Baselines: `docs/performance/librobne-baseline-841639f3/`
 - Path to on-cluster (`robne-operator`) and SaaS embedding
