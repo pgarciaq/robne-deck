@@ -341,6 +341,20 @@ Not a faster Kruize wrapper — a **full recommendation engine**
 
 ---
 
+## Hosted Control Plane Recommendations
+
+**Per-hosted-cluster rightsizing** — HyperShift control-plane components (etcd, kube-apiserver, …) attributed to the hosted cluster they serve. **Shipped and live.**
+
+| Capability | Details |
+|------------|---------|
+| Association | Namespace→hosted-cluster snapshots; evidenced-but-unmapped rows show `incomplete`, never guessed |
+| API surface | `GET .../hcp` list/filter/group-by (summed savings), `GET .../hcp/{id}` detail |
+| UI tab | Hosted control plane tab: projection toolbar, hosted filter, group-by drill-down |
+| Correlator | Hourly hosted-vs-management advisories (advisory-only, 24h expiry) + `/settings/hcp-correlation` policy |
+| Guardrails | Control-plane floors; no replica recs; honors `ROS_DISABLED_PLUGINS=hcp` |
+
+---
+
 ## Performance Numbers
 
 | Metric | Kruize | Native Engine |
