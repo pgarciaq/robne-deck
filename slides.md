@@ -396,7 +396,7 @@ Not a faster Kruize wrapper — a **full recommendation engine**
 | **Enrich** | Context & policy | business hours, tags, snapshot staleness, idle/zombie/abandoned, OOM, GPU enrich on container APIs |
 | **Optimize** | FinOps value | cost model integration, dollar savings, fleet summary, **history** (container, namespace, quota, CRQ) |
 
-**Phase 2/3 (planned):** java/jvm, Go runtime advisory (#70), hpa, vpa · binpacking, machineset (fleet)
+**Phase 2/3 (planned):** java/jvm, Go runtime advisory (#70), hpa, vpa · binpacking, machineset Tier 2a (Tier 1 aggregation shipped)
 
 **Key optimizations:**
 
@@ -581,8 +581,8 @@ One engine, three shapes: **service · CLI · library**
 
 - Seasonality / proactive recommendations (design documented)
 - Node Tier 2a — MachineSet engine (Tier 1 aggregation shipped)
-- **UI tabs** — GPU, quota, VM views (Namespace, Node, Storage shipped)
-- HCP fleet optimization waves W0–W5 (design accepted; W0 landing: topology #407, code 83)
+- **UI tabs** — GPU, quota, VM, HCP views (Namespace, Node, Storage shipped)
+- HCP fleet optimization: waves W0 (topology), W1 (management-CP rightsizing + UI tab), thin W2 (correlator + SLO store) **shipped and live**; W3–W5, M3 bridge, distribution, dedicated masters remain planned
 - `robne-operator` on-cluster mode (CRD `ResourceOptimizationConfig` defined)
 - 100K benchmark re-run on phase 17 (#518)
 
@@ -625,7 +625,7 @@ CLI · Visual Insights · UI tabs (NS/Node/Storage)
 Seasonality design
 MachineSet Tier 2a
 UI (GPU/quota/VM)
-HCP waves W0–W5
+~~HCP waves W0–W5~~ → ✅ shipped W0–W2 (surface, savings, correlator, UI tab; W3–W5/M3/distribution/dedicated remain planned)
 robne-operator mode
 
 </div>
@@ -653,9 +653,9 @@ One engine · one database · one language — **continuous delivery** without K
 
 ### HCP fleet optimization
 
-- Waves W0–W5, ADRs 0328–0335 accepted
-- Cluster-topology detection landing (W0: #407, code 83)
-- Management-CP guardrails · cross-plane causality
+- Waves W0–W5, ADRs 0328–0335 accepted — **W0, W1, thin W2 shipped and live** (surface, grouped savings, correlator + SLO store, UI tab)
+- Remaining: W3–W5, M3 bridge, distribution, dedicated masters
+- Management-CP guardrails · cross-plane causality advisories
 
 </div>
 <div>
