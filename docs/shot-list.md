@@ -1,22 +1,26 @@
 # Screenshot shot list
 
-The ten design shots, what exists for each, and whether the result can survive
-being forwarded. Assets live in `assets/screenshots/`; the raw captures stay in
-`/tmp/opencode/capture/` and are not tracked.
+The design shots, what exists for each, where it currently lands, and whether the
+result can survive being forwarded. Assets live in `assets/screenshots/`; the raw
+captures stay in `/tmp/opencode/capture/` and are not tracked.
 
-| Shot | Slide (A/B) | File | Status |
+Slide references are current as of the 2026-11-03 trim: deck A has 22 slides
+(title + 13 content + Q&A + 6 appendix), deck B has 13. An asset marked "unused"
+was captured for the design but no slide in either deck references it any more.
+
+| Shot | Appears on | File | Status |
 |---|---|---|---|
-| Optimizations list with savings column | A1, B2 | `container-list.png` | captured |
-| Namespace recommendations tab | A5 | `namespace-tab.png` | captured-with-caveat |
-| Node recommendations tab | A5 | `node-tab.png` | captured-with-caveat |
-| Storage recommendations tab | A5 | `storage-tab.png` | captured-with-caveat |
-| Hosted Control Plane tab with drill-down | A8 | `hcp-tab.png` | captured-with-caveat |
-| Fleet Summary heatmap | A3 | `fleet-heatmap.png` | captured-with-caveat |
-| Detail page: percentile bands, gauges | A6, B3 | `container-detail.png` | captured |
+| Optimizations list with savings column | B5 | `container-list.png` | captured |
+| Detail page: percentile bands, gauges | B9 | `container-detail.png` | captured |
+| `robne recommend` terminal output | A10 | `robne-cli.png` | captured |
+| Hosted Control Plane tab with drill-down | A19 (slide labelled A4) | `hcp-tab.png` | captured-with-caveat |
+| Fleet Summary heatmap | A20 (slide labelled A5) | `fleet-heatmap.png` | captured-with-caveat |
+| Namespace recommendations tab | unused | `namespace-tab.png` | captured-with-caveat |
+| Node recommendations tab | unused | `node-tab.png` | captured-with-caveat |
+| Storage recommendations tab | unused | `storage-tab.png` | captured-with-caveat |
+| Substitute for the settings shot: cost models | unused | `cost-models.png` | captured-with-caveat |
 | Settings page: business hours, thresholds | — | — | missing |
-| `robne recommend` terminal output | A12 | `robne-cli.png` | captured |
-| Optional: HCP fleet-capacity or history output | A-appendix | — | missing |
-| Substitute for the settings shot: cost models | A7 | `cost-models.png` | captured-with-caveat |
+| Optional: HCP fleet-capacity or history output | — | — | missing |
 
 ## What each caveat is
 
@@ -32,12 +36,12 @@ being forwarded. Assets live in `assets/screenshots/`; the raw captures stay in
   management cluster (`hcp-ingest-…`). Deck A only.
 - **`fleet-heatmap.png`** — shows the whole lab fleet, including `e2e-*`,
   `crq-worker`, and `seed`/`w8-*` clusters, and the fleet savings tile reads
-  `$0.00` because the fleet rollup uses a different rate basis than the
-  per-cluster list. Deck A only.
-- **`cost-models.png`** — the substitute for the settings shot. Supports deck A's
-  savings slide: savings are rate-driven, and the lab cost model is one node
-  rate. Captured mid-load (a white strip under the masthead); acceptable for a
-  supporting slide, do not enlarge it.
+  `$0.00 USD` while the per-cluster list shows $1,262.15/month for the same
+  cluster. The cause (a different rate basis in the rollup) is a reading of the
+  numbers, not something verified in code. Deck A only.
+- **`cost-models.png`** — the substitute for the settings shot; no slide uses it
+  since the savings slide was cut. It was captured mid-load (a white strip under
+  the masthead), so it would need a re-shoot before use.
 - **`node-tab.png`, `storage-tab.png`, `cost-models.png`, `hcp-tab.png`,
   `namespace-tab.png`** — the Node and Storage tabs were captured through the
   cluster-UUID filter rather than the alias filter, because

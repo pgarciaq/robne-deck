@@ -62,6 +62,8 @@ both from the same benchmark report.
 
 <div class="callout">Production snapshot (SaaS, 24 h, July 2026): 3 Kruize replicas, <strong>99.6%</strong> experiment-creation failure rate, <strong>73%</strong> result-update failure rate.</div>
 
+<span class="small">Different deployments, not equal footing: the Kruize column is its own published scalability run in the shape it runs in production — multi-node OpenShift, 10 replicas, 5,000 containers × 15 days. The native column is one single-node OpenShift on a lab Dell R640 (8 cores, 78 GB, a virtualized 2018-era Xeon host), 1 pod, fed direct-to-MinIO.</span>
+
 <span class="small"><!-- as of 2026-07-11 --> `docs-site/operations/scale-benchmark-report.md`</span>
 
 ---
@@ -78,7 +80,7 @@ both from the same benchmark report.
 
 **What we deliberately did not do**
 
-- Not a Kruize fork, not a sidecar next to Kruize, not a re-implementation of its API in Java
+- Not a Kruize fork, not a sidecar next to Kruize, not a re-implementation of the Kruize API in Go
 - Not a second copy of the customer's data — the engine reads the same Postgres and the same CSVs
 - Not a replacement for `koku`, `koku-ui` or the operator; ROS stays the recommendation layer
 
@@ -99,7 +101,7 @@ both from the same benchmark report.
 | cluster-quota | ClusterResourceQuota pools vs namespace quotas | single | 3 |
 | snapshot | orphaned, stale, redundant, never-restored snapshots | single | 3 |
 
-<span class="small"><!-- as of 2026-11-03 --> `slo` and `kruize` are registered in code as well but are not in the public domain table (`docs-site/index.md`). Term windows are configurable 1–90 days.</span>
+<span class="small"><!-- as of 2026-11-03 --> `slo` and `kruize` are registered in code as well but are not in the public domain table (`docs-site/index.md`). Term windows are user-configurable per plugin and term — 1–90 days for most plugins, 1–365 for PVC — with the cap declared per plugin in code, not derived from retention.</span>
 
 ---
 
@@ -121,12 +123,12 @@ both from the same benchmark report.
 
 ---
 
-## Scale benchmark: what it does and does not say
+## Scale benchmark: what the run proves, and what it cannot carry
 
 <div class="cols">
 <div>
 
-**It says**
+**The run proves**
 
 - ~84,000 containers, ~2,500 VMs, ~2,500 GPU containers, ~12,000 PVCs, plus quotas and snapshots
 - 525,044 recommendations from one pod in ~87 minutes
@@ -136,50 +138,19 @@ both from the same benchmark report.
 </div>
 <div>
 
-**It does not say**
+**It cannot carry**
 
-- That this is a production SLO: the run points at MinIO directly, so the Koku listener is bypassed
-- That the wall time covers upload: ~56 min of upload harness and ~5.3 h of data generation are excluded
-- That the current code is re-benchmarked: the phase-17 dual-stream business-hours re-run is still open (#518)
+- A production SLO: the run points at MinIO directly, so the Koku listener is bypassed
+- End-to-end wall time: ~56 min of upload harness and ~5.3 h of data generation are excluded
+- A claim about current code: the phase-17 dual-stream business-hours re-run is still open (#518)
+- A claim about production hardware: one SNO on a lab Dell R640, 8 cores and 78 GB RAM
 
 </div>
 </div>
+
+<div class="callout">Quote it as: <strong>one pod, ~87 minutes of processor time, 525,044 recommendations over ~84,000 containers</strong>. Not "87 minutes end to end", and not "production".</div>
 
 <span class="small"><!-- as of 2026-11-03 --> `docs-site/operations/scale-benchmark-report.md` (frozen 2026-07-11), #518</span>
-
----
-
-## Quality posture, stated plainly
-
-**Latest completed harness run — 2026-11-01, `--all --no-ui`**
-
-- 371 passed · 51 failed · 55 errors · 426 skipped · 99 deselected, of 1,002 collected (903 selected)
-- Runtime 2:03:30; runner exit code 1
-- Observed signatures: Keycloak password-grant `invalid_grant` / "Account is not fully set up", then `oc exec` cluster-API TCP `i/o timeout`
-
-**What that is and is not**
-
-- It is **not** a passing deployment or release baseline — the page says so explicitly
-- Root-cause attribution for every failure is **not** established; those signatures are environmental, not product verdicts
-- The "477 passed" figure from the old deck (Jul 2026) is **asserted, not verified** — it appears nowhere in the repo
-
-<span class="small"><!-- as of 2026-11-01 --> `docs-site/testing/validating-native-engine.md`</span>
-
----
-
-## Hardening: v15 review
-
-| | |
-|---|---|
-| Findings | 29 (5 High, 20 Medium, 4 Low, 0 Critical) across ROS, KMO, Koku and Nise |
-| Tracker | #780 — every finding is a native sub-issue there |
-| Landed since | #751 settings-write denial, #753 RBAC scope, #754 heatmap scope |
-| Design fallout | ADR-0352: per-request RBAC scope, scope-free caches |
-| Still open | The rest of the 29, plus the two High items tracked under #780 |
-
-<span class="small"><!-- as of 2026-11-01 --> `docs/audit/adversarial-review-v15-2026-11-01.md`, issue tracker.</span>
-
-<span class="small">Framing for a room: the review's value is that it found these before a customer did — the open count is the honest part, not the closed count.</span>
 
 ---
 
@@ -242,7 +213,7 @@ robne recommend --input demo-usage.csv --rate-card demo-rate-card.json \
 ```
 
 <div class="callout">
-Heads-up before the demo: the cluster filter by <em>alias</em> returns 503 on Node, Storage, Quota, Snapshot and PVC (#790). Filter on the cluster UUID there, or the tab will look broken.
+Known issue before the demo (<strong>#790</strong>): the Optimizations cluster filter sends the cluster's <em>display name</em>, and five endpoints bind that value straight into a <code>uuid</code> column — Node, Storage, Quota, Cluster quota and Snapshot answer <strong>503</strong> until the filter resolves aliases server-side. Pick the cluster by UUID on those tabs.
 </div>
 
 ---
@@ -266,16 +237,20 @@ Heads-up before the demo: the cluster filter by <em>alias</em> returns 503 on No
 
 ## Roadmap
 
-**Near term (public planned-features pages exist for each)**
+**Shipped since the last state-of**
 
-- HCP: verify the W8 non-prod sleep advisory in a lab; remaining waves W3/W5 surfaces
+- HCP advisory surfaces W2/W3/W5/W8 — served today, one advisory per hosted cluster per window; the W8 sleep advisory still owes its lab verification
+
+**Next**
+
+- `robne-operator` Local/Hybrid modes (#138) — a contract today, no operator image
+- Performance testing with the Perf & Scale team, already in flight
+
+**After that**
+
 - MachineSet tiers: Tier 1 from node recs, Tier 2 from a cloud instance catalog
 - Seasonality / proactive recommendations
 - Phase-2 plugins: java/JVM, Go runtime, HPA and VPA advisories
-
-**Medium term**
-
-- `robne-operator` Local/Hybrid modes (#138)
 - SaaS cutover plan for the native engine
 
 **Housekeeping that blocks trust**
@@ -286,19 +261,15 @@ Heads-up before the demo: the cluster filter by <em>alias</em> returns 503 on No
 
 ---
 
-## Summary and asks
+## Summary: how the native engine compares with Kruize
 
-**Three things to take away**
+**On Kruize 0.11's own published run**
 
-1. The engine replacement is done and the surfaces are broader than Kruize's: 12 plugins, 5 with dual engines
-2. The performance story is real but narrower than the old deck implied — one 100K run, processor time only
-3. The quality story is honest: a red E2E run with environmental causes, 29 recorded review findings, and a green path that needs re-running on current code
+- **Many more recommendation types** — Kruize ships container, namespace, GPU-container and JVM/Java advice; the native engine adds 15+ it marks absent: node, VM, PVC, cluster quota, GPU MIG, GPU time-slicing, GPU idle, container/namespace/node idle, business hours, data decay, savings, snapshot staleness, dual cost/performance engines
+- **Much lighter** — 1 pod, 119 MiB steady, 3.5 GB database, against 10 replicas, 43.52 GB peak and 22 GB
+- **Much faster** — ~84,000 containers and 525,044 recommendations in ~87 minutes, against 5,000 containers in 3 h 17 m
 
-**Asks**
-
-- Two reviewers on the remaining v15 High findings (#780)
-- A lab slot for the #518 re-run and a green E2E baseline
-- #790 before we demo the UI to anyone outside the team
+<span class="small">Caveat that travels with the comparison: the native side is one lab SNO (8 cores, 78 GB) fed direct-to-MinIO; the Kruize side is its own published run, not a re-run on our hardware.</span>
 
 ---
 
@@ -307,6 +278,16 @@ Heads-up before the demo: the cluster filter by <em>alias</em> returns 503 on No
 # Appendix
 
 ## Q&A jump targets
+
+| If the question is about… | Go to |
+|---|---|
+| one plugin's behaviour (percentiles, classification, thresholds) | A1 · Domain detail |
+| the plugin phases, and what is planned per plugin | A2 · Plugin phases |
+| what an HCP advisory verdict means, and which wave added it | A3 · HCP advisory verdicts |
+| the Hosted control plane tab itself | A4 · lab capture |
+| the Fleet Summary heatmap | A5 · lab capture |
+| settings writes, RBAC scope, tenant isolation | A6 · Security and operational controls |
+| where to read further (docs-site, ADRs, specs) | A7 · Pointers |
 
 ---
 
@@ -340,6 +321,8 @@ Heads-up before the demo: the cluster filter by <em>alias</em> returns 503 on No
 
 ## A3 · HCP advisory verdicts (served surface)
 
+<span class="small">What this is: the four verdict strings the HCP advisories endpoint can return, the wave that introduced each, and the condition it reports. Sizing lives on the Hosted control plane tab (A4); this is the advisory vocabulary.</span>
+
 | Verdict | Wave | Means |
 |---|---|---|
 | `do_not_add_workers_first` | W2 headroom | hosted API latency and control-plane saturation say add workers first |
@@ -371,7 +354,7 @@ Heads-up before the demo: the cluster filter by <em>alias</em> returns 503 on No
 
 Lab fleet of 13 clusters, test clusters included — **internal only**. Two things worth saying out loud:
 
-- The potential-savings tile reads <strong>$0.00</strong>: the fleet rollup uses a different rate basis than the per-cluster list.
+- The potential-savings tile reads <strong>$0.00</strong> while the per-cluster list shows <strong>$1,262.15/month</strong> for cluster `sno`: the two use a different rate basis. Observed, not yet traced in code.
 - The heatmap has no cluster filter, so it shows every cluster the org can see — including test clusters nobody would chase.
 
 </div>
@@ -393,22 +376,7 @@ Lab fleet of 13 clusters, test clusters included — **internal only**. Two thin
 
 ---
 
-## A7 · What the archived deck got wrong
-
-| Claim in the 2026-10-05 deck | Reality on 2026-11-03 |
-|---|---|
-| 327 ADRs | 343 (newest ADR-0352) |
-| "477 passed" E2E, last full run | 371 passed / 51 failed / 55 errors, 2026-11-01; the 477 figure has no source |
-| 82 notification codes | unreconciled: 81 in the docs-site index, 85 numeric rows in the table |
-| 9 plugins | 12 registered in code, 10 in the public domain table |
-| robne-operator "planned" | **still future work (#138)** — the archived deck was right; an intermediate draft of the facts sheet overstated it as "in development" |
-| Page-1 < 100 ms, cold start < 1 s, 1000× keyset | asserted only; no repo source |
-
-<span class="small">This slide exists so the next person can see what changed and why, instead of re-deriving it.</span>
-
----
-
-## A8 · Pointers
+## A7 · Pointers
 
 | Need | Where |
 |---|---|
