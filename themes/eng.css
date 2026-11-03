@@ -16,6 +16,7 @@ section {
   color: #151515;
   font-size: 1.1em;
   padding: 52px 64px;
+  justify-content: flex-start;
 }
 
 section.lead {
@@ -58,7 +59,7 @@ strong {
 
 /* Tables: dense but readable; the comparison tables live in the appendix. */
 table {
-  font-size: 0.65em;
+  font-size: 0.72em;
   border-collapse: collapse;
 }
 
@@ -122,6 +123,12 @@ pre {
 .small {
   font-size: 0.72em;
   color: #555555;
+}
+
+section img {
+  max-height: 420px;
+  border: 1px solid #e2e2e2;
+  border-radius: 4px;
 }
 
 footer {

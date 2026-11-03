@@ -30,6 +30,19 @@ Facts were read on 2026-11-03 against `ros-ocp-backend` at branch `pgarciaq-roso
 | Typical RAM 50–100 MiB | **partially verified** — 119 MiB steady is sourced; the 50 MiB floor is not | scale report (119 MiB), archived deck (range) | 2026-07-11 | A |
 | Keyset pagination ~1000× faster page selection at 100K | **asserted, not verified** | archived deck only | unverified | A |
 
+## Kruize comparison (deck A only)
+
+Every row below is Kruize 0.11's own published scalability run versus the native
+engine's 100K run, both in `docs-site/operations/scale-benchmark-report.md`.
+
+| Claim | Value | Source | As of | Deck |
+|---|---|---|---|---|
+| Kruize 0.11 scalability run | 5,000 containers, 15 days, 10 replicas, 3h 17m wall, 43.52 GB peak memory, 22 GB database | `docs-site/operations/scale-benchmark-report.md` | 2026-07-11 | A |
+| Native 100K vs Kruize 5K | 16.8× more containers, 2× more data, ~87 min vs 3h 17m, 1 pod vs 10 | same | 2026-07-11 | A |
+| Kruize GPU containers | a separate 5h 50m run for 5,000 GPU containers; the native engine processed ~2,500 in the same pipeline, adding ~27 s | same | 2026-07-11 | A |
+| Kruize stored results | 7.2M individual result entries vs the native engine's daily digests | same | 2026-07-11 | A |
+| Kruize production snapshot (SaaS, 24 h, July 2026) | 3 replicas; 99.6% experiment-creation failure rate; 73% result-update failure rate | same | 2026-07-11 | A |
+
 ## Quality and governance
 
 | Claim | Value | Source | As of | Deck |
@@ -55,7 +68,11 @@ Facts were read on 2026-11-03 against `ros-ocp-backend` at branch `pgarciaq-roso
 | Fleet capacity advisory | shipped, issue #392 | `pgarciaq/ros-ocp-backend#392`, CHANGELOG Unreleased | 2026-11-03 | A+B |
 | Management-overhead scope | `filter[scope]=management`, ADR-0343, issue #694 | ADR-0343 | 2026-11-03 | A |
 | Local mode | `robne` CLI + `librobne` library; no JVM, PostgreSQL required | `docs-site/features/robne-cli.md`, `docs-site/architecture/librobne.md` | 2026-11-03 | A |
-| robne-operator | in development: OLM bundle, RBAC role, MachineSet Tier 1; open items #739 (Machines RBAC), #743 (phase-branch CI gap), #744 | repo tree, issues | 2026-11-03 | A |
+| robne-operator | **future work, not implemented**: separate operator repo (modeled on koku-metrics-operator), CRD `ResourceOptimizationConfig`, three modes (Local/Remote/Hybrid), tracked as #138. No operator code or OLM bundle in this repository. | `docs/features/local-mode.md` ("Status: Future work"), `docs-site/architecture/librobne.md` §robne-operator | 2026-11-03 | A |
+| Request-less container rows | empty request cells ingest as 0 with usage preserved (ADR-0344); previously the row was dropped | `CHANGELOG.md` Unreleased, #697 | 2026-11-03 | A |
+| HCP management flag and native-first detail parity | rows carry an explicit `management` boolean (#695); HCP detail resolves through the native detail path (#696) | `CHANGELOG.md` Unreleased | 2026-11-03 | A |
+| `savings-summary` per-plugin breakdown | returns per-plugin savings and additional-cost split (#686) | `CHANGELOG.md` #686 | 2026-11-03 | A |
+| Plugin execution model | three ordered phases: Produce, Enrich, Optimize | `docs-site/architecture/plugin-phases.md` | 2026-08-05 | A |
 
 ## Deck B roadmap eligibility
 
