@@ -17,7 +17,7 @@ section {
     BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif;
   background: #ffffff;
   color: #151515;
-  font-size: 1.05em;
+  font-size: 1.14em;
   padding: 56px 68px 72px;
   letter-spacing: -0.005em;
 }
@@ -71,13 +71,28 @@ h2 {
   font-size: 1.15em;
 }
 
+/*
+ * Marp decks write the slide title as `##`, so the content-slide title is an
+ * h2. Give it the deck's red rule; the lead slides are the only h1s.
+ */
+section:not(.lead) > h2 {
+  color: #151515;
+  font-size: 1.62em;
+  font-weight: 700;
+  letter-spacing: -0.015em;
+  border-bottom: 3px solid #ee0000;
+  padding-bottom: 0.22em;
+  margin: 0.1em 0 0.95em;
+}
+
 a {
   color: #0066cc;
 }
 
 table {
-  font-size: 0.72em;
+  font-size: 0.75em;
   border-collapse: collapse;
+  width: 100%;
 }
 
 th {
@@ -126,6 +141,8 @@ code {
 
 /* Card used for "what you get" style lists — one box, no shadow. */
 .card {
+  box-sizing: border-box;
+  height: 100%;
   border: 1px solid #e4e4e4;
   border-top: 3px solid #ee0000;
   border-radius: 4px;
@@ -140,13 +157,22 @@ code {
 }
 
 .small {
-  font-size: 0.74em;
+  font-size: 0.76em;
   color: #5c5c5c;
+}
+
+/* A boxed figure or single claim, used when a number carries a slide. */
+.callout {
+  border-left: 5px solid #ee0000;
+  background: #f7f7f7;
+  padding: 0.6em 0.9em;
+  font-size: 0.9em;
 }
 
 /* Screenshots: framed, never cropped by the layout. */
 section img {
   max-height: 430px;
+  max-width: 100%;
   display: block;
   margin: 0 auto;
   border: 1px solid #e4e4e4;
@@ -166,6 +192,7 @@ section.lead img {
 
 /* Footer: the as-of date rides here on every content slide. */
 footer {
+  position: absolute;
   color: #5c5c5c;
   font-size: 0.53em;
   border-top: 3px solid #ee0000;
