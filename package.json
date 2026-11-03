@@ -4,11 +4,16 @@
   "private": true,
   "description": "Marp presentations: ROS-OCP Native Engine (engineering and customer decks)",
   "scripts": {
-    "serve": "marp --no-stdin -s . --theme-set themes/",
+    "serve": "sh scripts/serve.sh",
     "build:eng": "marp --no-stdin slides-eng.md --theme-set themes/ -o dist/eng.html --allow-local-files && node scripts/zoomable-images.mjs dist/eng.html && cp -r assets dist/",
-    "build:customer": "marp --no-stdin slides-customer.md --theme-set themes/ -o dist/index.html --allow-local-files && node scripts/zoomable-images.mjs dist/index.html && cp -r assets dist/",
+    "build:customer": "marp --no-stdin slides-customer.md --theme-set themes/ -o dist/customer.html --allow-local-files && node scripts/zoomable-images.mjs dist/customer.html && cp -r assets dist/",
     "build:pdf:eng": "marp --no-stdin slides-eng.md --theme-set themes/ -o dist/eng.pdf --allow-local-files",
-    "build:pdf:customer": "marp --no-stdin slides-customer.md --theme-set themes/ -o dist/customer.pdf --allow-local-files"
+    "build:pdf:customer": "marp --no-stdin slides-customer.md --theme-set themes/ -o dist/customer.pdf --allow-local-files",
+    "assemble:site": "sh scripts/assemble-site.sh",
+    "preview:site": "npm run build:customer && npm run build:eng && npm run build:handouts && npm run assemble:site",
+    "build:pptx:eng": "marp --no-stdin slides-eng.md --theme-set themes/ --pptx -o dist/eng.pptx --allow-local-files",
+    "build:pptx:customer": "marp --no-stdin slides-customer.md --theme-set themes/ --pptx -o dist/customer.pptx --allow-local-files",
+    "build:handouts": "npm run build:pdf:customer && npm run build:pdf:eng && npm run build:pptx:customer && npm run build:pptx:eng"
   },
   "devDependencies": {
     "@marp-team/marp-cli": "^4.1.2"

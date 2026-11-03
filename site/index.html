@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Resource Optimization for OpenShift — decks</title>
+<meta name="description" content="Two presentations on Resource Optimization for OpenShift: one for customers and field teams, one for engineering.">
+<style>
+  /*
+   * Landing page for the two decks. Static by design: it is copied verbatim
+   * into the Pages artifact, so it carries no build step and no dependencies.
+   * Palette follows themes/rh.css so the chooser and the customer deck read as
+   * the same material.
+   */
+  :root {
+    --ink: #151515;
+    --ink-soft: #3c3f42;
+    --rule: #d2d2d2;
+    --panel: #f5f5f5;
+    --accent: #ee0000;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: #ffffff;
+    color: var(--ink);
+    font-family: "Red Hat Text", "Red Hat Display", -apple-system,
+      BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    font-size: 17px;
+    line-height: 1.55;
+    letter-spacing: -0.005em;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+  }
+
+  .masthead {
+    background: var(--ink);
+    color: #ffffff;
+    padding: 72px 8vw 64px;
+    border-bottom: 3px solid var(--accent);
+  }
+
+  .masthead .kicker {
+    margin: 0 0 14px;
+    font-size: 0.82rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: #d2d2d2;
+  }
+
+  .masthead h1 {
+    margin: 0;
+    font-size: clamp(1.9rem, 4.4vw, 2.9rem);
+    line-height: 1.12;
+    letter-spacing: -0.02em;
+    font-weight: 700;
+    max-width: 22ch;
+  }
+
+  .masthead p {
+    margin: 18px 0 0;
+    max-width: 62ch;
+    color: #e0e0e0;
+    font-size: 1.02rem;
+  }
+
+  main {
+    flex: 1;
+    padding: 56px 8vw 64px;
+  }
+
+  .choices {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 24px;
+    max-width: 1100px;
+  }
+
+  .deck {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 28px 26px 24px;
+    background: var(--panel);
+    border-top: 3px solid var(--accent);
+    border-radius: 2px;
+    transition: background 120ms ease, transform 120ms ease;
+  }
+
+  .deck:hover {
+    background: #ebebeb;
+    transform: translateY(-2px);
+  }
+
+  /* The title link covers the whole card, so a click anywhere but the download
+     buttons opens the deck. */
+  .deck-link {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  .deck-link::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+  }
+
+  .deck-link:focus-visible {
+    outline: 3px solid var(--accent);
+    outline-offset: 4px;
+  }
+
+  .deck .audience {
+    font-size: 0.78rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+  }
+
+  .deck h2 {
+    margin: 0;
+    font-size: 1.32rem;
+    line-height: 1.25;
+    letter-spacing: -0.015em;
+  }
+
+  .deck p {
+    margin: 0;
+    color: var(--ink-soft);
+    font-size: 0.96rem;
+  }
+
+  .actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 8px 18px;
+    margin-top: auto;
+    padding-top: 16px;
+  }
+
+  /* Above the stretched title link, or the card would swallow these clicks. */
+  .actions a {
+    position: relative;
+    z-index: 1;
+  }
+
+  .actions .open {
+    font-size: 0.92rem;
+    font-weight: 600;
+    color: var(--accent);
+    text-decoration: none;
+  }
+
+  .actions .open:hover,
+  .actions .open:focus-visible {
+    text-decoration: underline;
+  }
+
+  .actions .download {
+    padding: 3px 10px;
+    border: 1px solid var(--rule);
+    border-radius: 999px;
+    background: #ffffff;
+    color: var(--ink-soft);
+    font-size: 0.78rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-decoration: none;
+  }
+
+  .actions .download:hover,
+  .actions .download:focus-visible {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  .note {
+    max-width: 62ch;
+    margin: 36px 0 0;
+    padding-left: 16px;
+    border-left: 5px solid var(--accent);
+    color: var(--ink-soft);
+    font-size: 0.92rem;
+  }
+
+  footer {
+    padding: 22px 8vw 30px;
+    border-top: 1px solid var(--rule);
+    color: var(--ink-soft);
+    font-size: 0.84rem;
+  }
+
+  footer code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 0.92em;
+  }
+</style>
+</head>
+<body>
+
+<header class="masthead">
+  <p class="kicker">Cost Management · Optimizations</p>
+  <h1>Resource Optimization for OpenShift</h1>
+  <p>Right-size every workload with recommendations you can explain. Two decks: one written for customers and field teams, one for engineering.</p>
+</header>
+
+<main>
+  <div class="choices">
+
+    <article class="deck">
+      <span class="audience">Customer &amp; field</span>
+      <h2><a class="deck-link" href="customer.html">What Resource Optimization does for you</a></h2>
+      <p>Read cold and forwarded on its own: which resource types get right-sized, what that saves, and how a cluster adopts it.</p>
+      <div class="actions">
+        <a class="open" href="customer.html">Open the deck →</a>
+        <a class="download" href="customer.pdf" aria-label="Download the customer deck as PDF">PDF</a>
+        <a class="download" href="customer.pptx" aria-label="Download the customer deck as PowerPoint">PPTX</a>
+      </div>
+    </article>
+
+    <article class="deck">
+      <span class="audience">Engineering</span>
+      <h2><a class="deck-link" href="eng.html">Inside the native recommendation engine</a></h2>
+      <p>Presented live: how recommendations are computed, how the engine was benchmarked against Kruize, and what is still open.</p>
+      <div class="actions">
+        <a class="open" href="eng.html">Open the deck →</a>
+        <a class="download" href="eng.pdf" aria-label="Download the engineering deck as PDF">PDF</a>
+        <a class="download" href="eng.pptx" aria-label="Download the engineering deck as PowerPoint">PPTX</a>
+      </div>
+    </article>
+
+  </div>
+
+  <p class="note">Both decks are Marp presentations: arrow keys or the on-screen controls move between slides, and screenshots open full size when clicked. The PDF and PPTX downloads are built for offline use and for forwarding.</p>
+</main>
+
+<footer>
+  Costs are shown in US dollars. Figures reflect the state of the project as of November 2026 — <code>docs/facts.md</code> in the repository records the source and date behind each one.
+</footer>
+
+</body>
+</html>
