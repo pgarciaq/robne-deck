@@ -1,0 +1,410 @@
+---
+marp: true
+theme: eng
+paginate: true
+footer: 'State of the Native Engine — as of 2026-11-03 — internal engineering briefing'
+---
+
+<!-- _class: lead -->
+
+# State of the Native Engine
+
+## ROS-OCP backend — engineering briefing
+
+**as of 2026-11-03** · ~20 min + live demo
+
+<span class="small">Every number in this deck resolves to a row in `docs/facts.md`, with a source and an as-of date. Numbers that do not are marked *asserted, not verified*.</span>
+
+---
+
+## One-year arc: glue layer → engine → service → CLI → operator
+
+| Stage | What changed | Where it lives |
+|---|---|---|
+| **Glue layer** | Kruize consumer: parse CSV, push to Kruize, reshape its output | gone |
+| **Engine** | Native percentile engines behind the same REST contract (ADR-0001) | `internal/engine/` |
+| **Service** | Savings, idle/zombie, business hours, HCP, quality and history surfaces | `internal/api/`, `internal/services/` |
+| **CLI + library** | `robne` for offline runs; `librobne` as the embeddable core | `cmd/robne`, `librobne/` |
+| **Operator** | On-cluster Local/Hybrid modes — **future work, not implemented** (#138) | separate repo |
+
+<span class="small"><!-- as of 2026-11-03 --> The engine, service and CLI stages are shipped; the operator stage is a contract, not code.</span>
+
+---
+
+## What's new since the last state-of (2026-10-05)
+
+- **HCP fleet-capacity advisory** — two endpoints, five native scenarios, MCE reference gauges (#392)
+- **Request-less containers ingest** — empty request cells now parse as 0 with usage preserved instead of dropping the row (#697, ADR-0344)
+- **HCP management topology** — explicit `management` boolean on rows (#695), native-first HCP detail parity (#696)
+- **Savings rollup** — `savings-summary` now splits savings from additional cost per plugin (#686)
+- **v15 hardening landed** — settings-write denial (#751), RBAC scope (#753), heatmap scope (#754)
+- **Compatibility list window fixed** — the legacy container list alias now uses the documented current-month window (#782)
+- **Plugin count** — 12 registered in code; the public domain table lists 10
+
+<span class="small"><!-- as of 2026-11-03 --> Source: `CHANGELOG.md` Unreleased, `internal/plugins/plugins.go`, `docs-site/index.md`.</span>
+
+---
+
+## Why Kruize had to go
+
+Kruize 0.11's own published scalability run, against the native engine's 100K run —
+both from the same benchmark report.
+
+| Metric | Kruize 0.11 | Native (100K run) |
+|---|---|---|
+| Containers | 5,000 (15 days of data) | ~84,000 (31 days) |
+| Processing wall time | 3h 17m | ~87 min |
+| Replicas | 10 | 1 |
+| Peak memory | 43.52 GB | 119 MiB steady in-run |
+| Database | 22 GB | 3.5 GB |
+| Stored results | 7.2M individual entries | daily digests |
+| GPU containers | separate 5h 50m run | same pipeline, +~27 s |
+
+<div class="callout">Production snapshot (SaaS, 24 h, July 2026): 3 Kruize replicas, <strong>99.6%</strong> experiment-creation failure rate, <strong>73%</strong> result-update failure rate.</div>
+
+<span class="small"><!-- as of 2026-07-11 --> `docs-site/operations/scale-benchmark-report.md`</span>
+
+---
+
+## The decision
+
+**Requirements the replacement had to meet**
+
+- One engine inside the existing Koku pipeline — no second datastore, no second upload path
+- Same REST contract, so the UI keeps working while the engine changes underneath
+- Percentiles computed once, at ingest, stored as compact daily digests
+- A plugin boundary, so a new resource type does not mean a new service
+- Runs without a JVM; runs offline for support and field work
+
+**What we deliberately did not do**
+
+- Not a Kruize fork, not a sidecar next to Kruize, not a re-implementation of its API in Java
+- Not a second copy of the customer's data — the engine reads the same Postgres and the same CSVs
+- Not a replacement for `koku`, `koku-ui` or the operator; ROS stays the recommendation layer
+
+---
+
+## Coverage: 12 plugins, 10 public domains
+
+| Plugin | What it recommends | Engines | Terms |
+|---|---|---|---|
+| container | CPU/memory requests and limits, inline idle/zombie | cost + perf | 3 |
+| namespace | namespace-level quota targets from container recs | cost + perf | 3 |
+| node | under/over-provisioned nodes, consolidation, target sizing | cost + perf | 3 |
+| vm | vCPU/GiB, disk, I/O, instance type, guest GPU, idle/abandoned | cost + perf | 3 |
+| hcp | hosted control-plane sizing, fleet capacity, advisories | cost + perf | 3 |
+| gpu | MIG profiles, time-slicing replicas, classification | single | 3 |
+| pvc | capacity from growth trends: oversized, near-full, orphaned | single | 3 |
+| quota | ResourceQuota tighten/raise/optimal | single | 3 |
+| cluster-quota | ClusterResourceQuota pools vs namespace quotas | single | 3 |
+| snapshot | orphaned, stale, redundant, never-restored snapshots | single | 3 |
+
+<span class="small"><!-- as of 2026-11-03 --> `slo` and `kruize` are registered in code as well but are not in the public domain table (`docs-site/index.md`). Term windows are configurable 1–90 days.</span>
+
+---
+
+## Performance now
+
+| Claim | Value | Status |
+|---|---|---|
+| 100K run: recommendations produced | 525,044 | verified |
+| 100K run: processor wall time | ~87 min, 1 pod | verified |
+| Steady memory during that run | 119 MiB | verified |
+| Database size after that run | 3.5 GB | verified |
+| API page-1 latency | < 100 ms | asserted |
+| Deep pagination with keyset | < 500 ms | asserted |
+| Cold start | < 1 s | asserted |
+| Typical RAM | 50–100 MiB | partially verified (119 MiB steady is sourced) |
+| Keyset vs offset page selection | ~1000× faster | asserted |
+
+<span class="asserted"><!-- as of 2026-11-03 --> The four asserted rows have no source in the repo: they survived from the previous deck. They need a measurement run before anyone quotes them outside this room.</span>
+
+---
+
+## Scale benchmark: what it does and does not say
+
+<div class="cols">
+<div>
+
+**It says**
+
+- ~84,000 containers, ~2,500 VMs, ~2,500 GPU containers, ~12,000 PVCs, plus quotas and snapshots
+- 525,044 recommendations from one pod in ~87 minutes
+- 3.5 GB database, 119 MiB steady memory
+- GPU work folded into the same pipeline (+~27 s), not a separate run
+
+</div>
+<div>
+
+**It does not say**
+
+- That this is a production SLO: the run points at MinIO directly, so the Koku listener is bypassed
+- That the wall time covers upload: ~56 min of upload harness and ~5.3 h of data generation are excluded
+- That the current code is re-benchmarked: the phase-17 dual-stream business-hours re-run is still open (#518)
+
+</div>
+</div>
+
+<span class="small"><!-- as of 2026-11-03 --> `docs-site/operations/scale-benchmark-report.md` (frozen 2026-07-11), #518</span>
+
+---
+
+## Quality posture, stated plainly
+
+**Latest completed harness run — 2026-11-01, `--all --no-ui`**
+
+- 371 passed · 51 failed · 55 errors · 426 skipped · 99 deselected, of 1,002 collected (903 selected)
+- Runtime 2:03:30; runner exit code 1
+- Observed signatures: Keycloak password-grant `invalid_grant` / "Account is not fully set up", then `oc exec` cluster-API TCP `i/o timeout`
+
+**What that is and is not**
+
+- It is **not** a passing deployment or release baseline — the page says so explicitly
+- Root-cause attribution for every failure is **not** established; those signatures are environmental, not product verdicts
+- The "477 passed" figure from the old deck (Jul 2026) is **asserted, not verified** — it appears nowhere in the repo
+
+<span class="small"><!-- as of 2026-11-01 --> `docs-site/testing/validating-native-engine.md`</span>
+
+---
+
+## Hardening: v15 review
+
+| | |
+|---|---|
+| Findings | 29 (5 High, 20 Medium, 4 Low, 0 Critical) across ROS, KMO, Koku and Nise |
+| Tracker | #780 — every finding is a native sub-issue there |
+| Landed since | #751 settings-write denial, #753 RBAC scope, #754 heatmap scope |
+| Design fallout | ADR-0352: per-request RBAC scope, scope-free caches |
+| Still open | The rest of the 29, plus the two High items tracked under #780 |
+
+<span class="small"><!-- as of 2026-11-01 --> `docs/audit/adversarial-review-v15-2026-11-01.md`, issue tracker.</span>
+
+<span class="small">Framing for a room: the review's value is that it found these before a customer did — the open count is the honest part, not the closed count.</span>
+
+---
+
+## Governance
+
+| Mechanism | State |
+|---|---|
+| Architecture decision records | 343 files, newest ADR-0352 |
+| ADR index | `docs-site/architecture/adrs.md` — every ADR summarised for readers |
+| Adversarial reviews | v14 → v15 (29 findings), each shipped as tracked issues |
+| CI gates | unit + short suite, lint, docs lint/drift, OpenAPI changelog check, govulncheck, CodeQL (main-only) |
+| Public contracts | `docs-site/` pages carry `Last verified` dates; the API page is generated from `openapi.json` |
+
+<span class="small"><!-- as of 2026-11-03 --> `docs/adr/` listing, `.github/workflows/`.</span>
+
+---
+
+## Local mode: the same engine, no cluster
+
+<div class="cols">
+<div>
+
+**`robne` CLI**
+
+- Reads a ROS CSV, a directory, a tarball, or a Postgres digest table
+- Emits JSON, CSV or a table; `--rate-card` for dollars
+- No JVM, no PostgreSQL required for a CSV run
+
+**`librobne`**
+
+- The engine as an importable Go module
+- `Recommend*` produces, `Apply*` folds decisions back
+- Same code path as the service — not a re-implementation
+
+</div>
+<div>
+
+![robne recommend output with per-container savings](assets/screenshots/robne-cli.png)
+
+</div>
+</div>
+
+<span class="small"><!-- as of 2026-11-03 --> Real output: `robne recommend` over `scripts/samples/ros-ocp-usage.csv` with a demo rate card. Both engines, same input, no cluster.</span>
+
+---
+
+## Demo hand-off: one engine, every surface
+
+**In the UI** — Optimizations area of Cost Management
+
+1. Fleet Summary → Container list with savings
+2. Namespace / Node / Storage / Virtual machine / Quota / GPU tabs
+3. History and Quality tabs, then one detail page (bands, gauges, notifications)
+
+**Then on the CLI** — the same containers, the same percentiles, no cluster
+
+```bash
+robne recommend --input demo-usage.csv --rate-card demo-rate-card.json \
+  --format table --plugins container
+```
+
+<div class="callout">
+Heads-up before the demo: the cluster filter by <em>alias</em> returns 503 on Node, Storage, Quota, Snapshot and PVC (#790). Filter on the cluster UUID there, or the tab will look broken.
+</div>
+
+---
+
+## robne-operator: a contract, not code
+
+| | |
+|---|---|
+| Status | **Future work, not implemented** (#138) |
+| Where | A separate operator repo, modeled on koku-metrics-operator |
+| CRD | `ResourceOptimizationConfig` (`resource-optimization.openshift.io/v1beta1`) |
+| Modes | **Local** (on-cluster engine + local API), **Remote** (collector/uploader), **Hybrid** (local engine, push recs + daily summaries) |
+| Import rules | `librobne` only — never `csv`, `pgrec` or `pgdigest` |
+| Engines | PromQL → daily digests → `Recommend*` → operator's own store |
+
+<span class="small"><!-- as of 2026-11-03 --> `docs/features/local-mode.md` ("Status: Future work"), `docs-site/architecture/librobne.md` §robne-operator.</span>
+
+<span class="small">Say it out loud in the room: nobody should leave thinking an operator image exists today.</span>
+
+---
+
+## Roadmap
+
+**Near term (public planned-features pages exist for each)**
+
+- HCP: verify the W8 non-prod sleep advisory in a lab; remaining waves W3/W5 surfaces
+- MachineSet tiers: Tier 1 from node recs, Tier 2 from a cloud instance catalog
+- Seasonality / proactive recommendations
+- Phase-2 plugins: java/JVM, Go runtime, HPA and VPA advisories
+
+**Medium term**
+
+- `robne-operator` Local/Hybrid modes (#138)
+- SaaS cutover plan for the native engine
+
+**Housekeeping that blocks trust**
+
+- Re-run the 100K benchmark on current code (#518)
+- Close out the remaining v15 findings (#780)
+- Fix the alias-filter 503 (#790) so the UI is demo-safe
+
+---
+
+## Summary and asks
+
+**Three things to take away**
+
+1. The engine replacement is done and the surfaces are broader than Kruize's: 12 plugins, 5 with dual engines
+2. The performance story is real but narrower than the old deck implied — one 100K run, processor time only
+3. The quality story is honest: a red E2E run with environmental causes, 29 recorded review findings, and a green path that needs re-running on current code
+
+**Asks**
+
+- Two reviewers on the remaining v15 High findings (#780)
+- A lab slot for the #518 re-run and a green E2E baseline
+- #790 before we demo the UI to anyone outside the team
+
+---
+
+<!-- _class: lead -->
+
+# Appendix
+
+## Q&A jump targets
+
+---
+
+## A1 · Domain detail
+
+| Plugin | Notable behaviour | Public page |
+|---|---|---|
+| container | P95/P99 + adaptive margins, OOM-aware bumps, tag filtering | `features/container-recommendations.md` |
+| namespace | digest band aggregation (p50/p95/p99/max) with growth buffers | `features/namespace-recommendations.md` |
+| node | stranded-resource detection, consolidation, target sizing | `features/node-recommendations.md` |
+| vm | instance-type matching, NUMA and placement checks, guest agent confidence | `features/virtual-machines.md` |
+| hcp | namespace→hosted-cluster association, advisories, fleet capacity | `features/hosted-control-plane.md` |
+| gpu | MIG profiles, time-slicing, catalog-driven | `features/gpu-mig.md`, `features/gpu-time-slicing.md` |
+| pvc | growth projection, orphaned/near-full classification | `features/pvc-rightsizing.md` |
+| quota / cluster-quota | tighten/raise/optimal against rec aggregates | `features/quota-recommendations.md`, `features/cluster-resource-quota.md` |
+| snapshot | staleness classes with recoverable cost | `features/snapshot-staleness.md` |
+
+---
+
+## A2 · Plugin phases and what comes next
+
+| Phase | Purpose | Plugins |
+|---|---|---|
+| Produce | generate recs from metrics and digests | container, namespace, node, gpu, pvc, quota, cluster-quota, snapshot, vm, kruize (legacy) |
+| Enrich | annotate Phase 1 output | *future:* java, golang, python, nodejs, hpa, vpa |
+| Optimize | cross-entity aggregation needing a fleet view | hcp, fleet-capacity surfaces |
+
+<span class="small">Every plugin embeds `BasePlugin` in phase 1 with priority 50 unless it needs different ordering. Source: `docs-site/architecture/plugin-phases.md` (verified 2026-08-05).</span>
+
+---
+
+## A3 · HCP advisory verdicts (served surface)
+
+| Verdict | Wave | Means |
+|---|---|---|
+| `do_not_add_workers_first` | W2 headroom | hosted API latency and control-plane saturation say add workers first |
+| `review_unused_hosted_cluster` | W3 zombie | cluster looks unused while its control plane keeps costing |
+| `tune_noisy_webhook` | W5 API-tax | a webhook storms the shared API plane (management-scoped, no hosted id) |
+| `schedule_nonprod_sleep` | W8 sleep | both gates pass: a declaration and a usage signature; the advisory never acts |
+
+<span class="small">`GET /recommendations/openshift/hcp/advisories` serves one advisory per hosted cluster per window, unpaginated with a 500-row cap; rows expire per the correlator's `expiry_h`. Field vocabulary evolves additively only (ADR-0349).</span>
+
+---
+
+## A4 · The Hosted control plane tab (lab capture)
+
+![Hosted control plane tab in the Optimizations UI](assets/screenshots/hcp-tab.png)
+
+<span class="small">Lab cluster: `hc-e2e-1` is a test hosted cluster on a test management cluster, and one row reads "Incomplete" because association is missing. Test names make this slide internal-only. What to notice: the tab separates hosted-cluster sizing from the management-overhead scope, and both savings columns show `–` where no rate applies.</span>
+
+---
+
+## A5 · Fleet Summary heatmap (lab capture)
+
+![Fleet Summary node utilization heatmap](assets/screenshots/fleet-heatmap.png)
+
+<span class="small">Lab fleet of 13 clusters, test clusters included — internal only. Two things worth saying out loud: the tile reads <strong>$0.00</strong> potential savings because the fleet rollup uses a different rate basis than the per-cluster list, and the heatmap has no cluster filter, so it shows every cluster the org can see.</span>
+
+---
+
+## A6 · Security and operational controls worth naming
+
+- **Settings writes** stop at permission denial, before persistence (#751)
+- **RBAC scope** is resolved per request; caches are scope-free (ADR-0352)
+- **Heatmap reads** are scope-checked, not org-wide (#754)
+- **Unauthorized or unknown clusters** answer 200 with empty data — non-disclosing, not 403-with-existence
+- **CSV download is SSRF-hardened**: host allowlist, private-network deny, 500 MiB default cap
+- **Fleet-capacity responses** are `Cache-Control: no-store`
+- **Idempotent writes** (`ON CONFLICT DO UPDATE`) let replicas overlap without corrupting state
+
+<span class="small"><!-- as of 2026-11-03 --> CHANGELOG Unreleased, ADR-0352, `docs-site/operations/performance-reviews.md` §SSRF-hardened CSV download.</span>
+
+---
+
+## A7 · What the archived deck got wrong
+
+| Claim in the 2026-10-05 deck | Reality on 2026-11-03 |
+|---|---|
+| 327 ADRs | 343 (newest ADR-0352) |
+| "477 passed" E2E, last full run | 371 passed / 51 failed / 55 errors, 2026-11-01; the 477 figure has no source |
+| 82 notification codes | unreconciled: 81 in the docs-site index, 85 numeric rows in the table |
+| 9 plugins | 12 registered in code, 10 in the public domain table |
+| robne-operator "planned" | **still future work (#138)** — the archived deck was right; an intermediate draft of the facts sheet overstated it as "in development" |
+| Page-1 < 100 ms, cold start < 1 s, 1000× keyset | asserted only; no repo source |
+
+<span class="small">This slide exists so the next person can see what changed and why, instead of re-deriving it.</span>
+
+---
+
+## A8 · Pointers
+
+| Need | Where |
+|---|---|
+| CLI spec and examples | `docs-site/features/robne-cli.md` |
+| Library contract, import rules | `docs-site/architecture/librobne.md` |
+| ADR index | `docs-site/architecture/adrs.md` |
+| UI contract for every endpoint | `docs-site/ui-integration-guide.md` |
+| E2E harness and current counts | `docs-site/testing/validating-native-engine.md` |
+| Frozen scale benchmark | `docs-site/operations/scale-benchmark-report.md` |
+| Ecosystem positioning (Kueue/DRA/KEDA) | `docs-site/architecture/ecosystem-comparison.md` |
+| Facts behind this deck | `docs/facts.md` in `pgarciaq/robne-deck` |
