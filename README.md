@@ -33,6 +33,16 @@ next to the HTML, because Marp keeps image paths relative; opening
 PDF builds pass `--allow-local-files` so images embed — that is what makes the
 PDF safe to send.
 
+HTML builds then run `scripts/zoomable-images.mjs`: every slide screenshot
+becomes clickable, opening in a lightbox at close to the capture's own
+resolution (click or Enter opens; Escape or a backdrop click closes; arrows and
+space stay with the lightbox while it is up). The wrapper it inserts copies the
+image's own box — block vs inline flow, `margin: 0 auto` centring — so a slide
+renders identically with and without it; if a theme changes how `section img` is
+styled, re-check with a before/after rect diff. PDF builds skip the step by
+design: clicking a PDF does nothing, and its images are already embedded at full
+resolution.
+
 ## Where the numbers come from
 
 `docs/facts.md` is the single source for every quantitative claim in either
