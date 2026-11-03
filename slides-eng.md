@@ -361,9 +361,21 @@ Heads-up before the demo: the cluster filter by <em>alias</em> returns 503 on No
 
 ## A5 · Fleet Summary heatmap (lab capture)
 
+<div class="cols">
+<div>
+
 ![Fleet Summary node utilization heatmap](assets/screenshots/fleet-heatmap.png)
 
-<span class="small">Lab fleet of 13 clusters, test clusters included — internal only. Two things worth saying out loud: the tile reads <strong>$0.00</strong> potential savings because the fleet rollup uses a different rate basis than the per-cluster list, and the heatmap has no cluster filter, so it shows every cluster the org can see.</span>
+</div>
+<div>
+
+Lab fleet of 13 clusters, test clusters included — **internal only**. Two things worth saying out loud:
+
+- The potential-savings tile reads <strong>$0.00</strong>: the fleet rollup uses a different rate basis than the per-cluster list.
+- The heatmap has no cluster filter, so it shows every cluster the org can see — including test clusters nobody would chase.
+
+</div>
+</div>
 
 ---
 
