@@ -20,7 +20,7 @@ footer: 'Resource Optimization for OpenShift · as of November 2026'
 <div class="takeaway">Over-provisioning is the safe default, and it is also the most common source of avoidable spend.</div>
 
 - Requests and limits are usually set once, guessed once, and never revisited
-- Every resource type needs a different answer: containers, namespaces, nodes, GPUs, storage, quotas, virtual machines
+- Every resource type needs a different answer: containers, namespaces, nodes, GPUs, storage, snapshots, quotas, virtual machines
 - Manual review does not scale past a handful of namespaces — and it says nothing about *why* a number is right
 - Under-provisioning has its own cost: throttling, evictions, and incidents nobody attributes to sizing
 
@@ -48,12 +48,14 @@ Nodes, GPUs and storage: consolidation, GPU profiles, and volume capacity from g
 <div class="card">
 
 ### Governance
-Quotas, virtual machines and snapshots: quota targets, VM sizing, and storage that is no longer earning its cost.
+Quotas, virtual machines and snapshots: quota targets, VM sizing, and snapshots that no longer earn their cost.
 
 </div>
 </div>
 
 Each recommendation arrives with **two perspectives** — one tuned to cost, one to performance headroom — across containers, namespaces, nodes, virtual machines and hosted control planes.
+
+Hosted control planes get their own view: how much control plane each hosted cluster needs, and how many more hosted clusters a management cluster can take.
 
 ---
 
@@ -168,7 +170,7 @@ The operator you already run collects cluster metrics and packages usage reports
 <div class="card">
 
 ### 2 · Analyze
-Cost and usage data is aggregated into compact per-day summaries — percentiles computed once, at ingest.
+Usage data is rolled up into compact per-day summaries — percentiles computed once, at ingest.
 
 </div>
 <div class="card">

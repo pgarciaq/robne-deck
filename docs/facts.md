@@ -89,6 +89,7 @@ Only items with a public docs-site mention qualify. Phrase as planned or under c
 | Claim | Value | Source | As of | Deck |
 |---|---|---|---|---|
 | Lab cluster potential savings | $1,262.15/month across 25 recommendations, cluster `sno` | `assets/screenshots/container-list.png` (on-prem SNO lab, cost model `252b7e97`) | 2026-11-03 | A+B |
+| Lab cluster additional-cost side | $164.25/month across 141 recommendations sized too small | same asset (same banner line) | 2026-11-03 | A+B |
 | Lab node classification | 1 node, CPU 3.1% / memory 69.9% P50, "Overcommitted", +$102.57/month additional cost | `assets/screenshots/node-tab.png` | 2026-11-03 | A |
 
 Screenshot values are the product's own output on a lab cluster, not product claims: deck B must caption them as an example, never as a benchmark.
