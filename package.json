@@ -2,11 +2,13 @@
   "name": "robne-deck",
   "version": "1.0.0",
   "private": true,
-  "description": "Marp presentation: ROS-OCP Native Engine",
+  "description": "Marp presentations: ROS-OCP Native Engine (engineering and customer decks)",
   "scripts": {
-    "serve": "marp --no-stdin -s .",
-    "build:html": "marp --no-stdin slides.md -o dist/slides.html",
-    "build:pdf": "marp --no-stdin slides.md -o dist/slides.pdf --allow-local-files"
+    "serve": "marp --no-stdin -s . --theme-set themes/",
+    "build:eng": "marp --no-stdin slides-eng.md --theme-set themes/ -o dist/eng.html",
+    "build:customer": "marp --no-stdin slides-customer.md --theme-set themes/ -o dist/index.html",
+    "build:pdf:eng": "marp --no-stdin slides-eng.md --theme-set themes/ -o dist/eng.pdf --allow-local-files",
+    "build:pdf:customer": "marp --no-stdin slides-customer.md --theme-set themes/ -o dist/customer.pdf --allow-local-files"
   },
   "devDependencies": {
     "@marp-team/marp-cli": "^4.1.2"
