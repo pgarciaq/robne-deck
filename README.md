@@ -15,7 +15,7 @@ stay out of the decks stays out of `slides-eng.md`.
 
 ## Prerequisites
 
-- [Node.js](https://nodejs.org/) 20+
+- [Node.js](https://nodejs.org/) 22+ (what the Pages workflow runs)
 - `npm install`
 
 ## Build
